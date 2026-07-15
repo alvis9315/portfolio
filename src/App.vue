@@ -1,10 +1,12 @@
 <script setup>
+import { ref } from 'vue'
 import { useScrollFlight } from './flight/useScrollFlight.js'
 import { composeShots } from './flight/composeShots.js'
 import { dollyIn, flyThrough, line } from './flight/shots.js'
 import { easeInOutCubic, easeInOutSine, easeOutCubic } from './flight/easing.js'
 import FlightStage from './flight/FlightStage.vue'
 import FlightCaption from './flight/FlightCaption.vue'
+import ProjectCard from './ui/ProjectCard.vue'
 import { buildWorkbench } from './scenes/workbench.js'
 import { buildCity } from './scenes/city.js'
 import { buildMountains } from './scenes/mountains.js'
@@ -12,6 +14,11 @@ import { site } from './content/site-content.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
 const ctl = useScrollFlight({ damping: 0.08 })
+
+/* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
+ * 城市場景的可見 t 區間 = flyThrough 段，卡片離開此區間自動淡出。 */
+const activeProject = ref(null)
+const CITY_RANGE = [0.34, 0.78]
 
 /* ── 2 + 3. Shot 層 + 編排層 ───────────────────────────────
  * 三段刻意用三種不同運鏡示範，接縫座標寫成常數保證 frame-identical。
@@ -62,6 +69,15 @@ const scenes = [
     :progress="ctl.progress"
     :context="{ content: site }"
     lighting="dusk"
+    @select="activeProject = $event"
+  />
+
+  <!-- 作品卡：UI 層，疊在舞台外，吃 @select 事件 + 綁 progress 區間 -->
+  <ProjectCard
+    :project="activeProject"
+    :progress="ctl.progress"
+    :range="CITY_RANGE"
+    @close="activeProject = null"
   />
 
   <!-- ── 4. UI 層：data-driven，全部吃 site-content ── -->

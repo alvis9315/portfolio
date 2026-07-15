@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { lightingPresets } from './stage/lights.js'
 import { createSceneManager } from './stage/lazyScenes.js'
 import { createFlightDebug } from './stage/debugPath.js'
+import { palette } from './stage/materials.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -23,6 +24,9 @@ const props = defineProps({
   context: { type: Object, default: () => ({}) },
   fov: { type: Number, default: 55 },
 })
+
+/** 點到地標樓時把 project 資料丟出去；點空白處丟 null（取消選取）。UI 卡片疊在舞台外接這個事件。 */
+const emit = defineEmits(['select'])
 
 const canvas = ref(null)
 let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug
@@ -64,11 +68,57 @@ onMounted(() => {
   window.addEventListener('resize', resize)
   resize()
 
+  /* ── Raycaster 互動：地標樓 hover 高亮 + click 選取 ──────────
+   * 只有城市在場（manager.live 有 city）且指標在畫面上時才 pick。
+   * hover 是純 3D（改材質 emissive）留在舞台內；click 才把資料 emit 出去。
+   * 每 frame 重算 pick，因為鏡頭在飛——指標不動，樓也會滑進滑出准心。 */
+  const raycaster = new THREE.Raycaster()
+  const pointer = new THREE.Vector2()
+  let hasPointer = false
+  let hovered = null
+  let hoveredEmissive = 0
+
+  const pickProjectMesh = () => {
+    raycaster.setFromCamera(pointer, camera)
+    for (const hit of raycaster.intersectObjects(scene.children, true)) {
+      for (let o = hit.object; o; o = o.parent) {
+        if (o.userData?.project) return o // 命中最近的、且屬於某 project 的樓（窗戶/燈沒有 project 會被略過）
+      }
+    }
+    return null
+  }
+
+  const setHover = (mesh) => {
+    if (mesh === hovered) return
+    if (hovered) hovered.material.emissive.setHex(hoveredEmissive) // 還原前一棟
+    hovered = mesh
+    if (hovered) {
+      hoveredEmissive = hovered.material.emissive.getHex()
+      hovered.material.emissive.setHex(palette.screenGlow)
+    }
+    canvas.value.style.cursor = hovered ? 'pointer' : ''
+  }
+
+  const onPointerMove = (e) => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1
+    hasPointer = true
+  }
+  const onPointerLeave = () => { hasPointer = false }
+  const onClick = () => {
+    const mesh = manager.live.has('city') ? pickProjectMesh() : null
+    emit('select', mesh ? mesh.userData.project : null)
+  }
+  canvas.value.addEventListener('pointermove', onPointerMove)
+  canvas.value.addEventListener('pointerleave', onPointerLeave)
+  canvas.value.addEventListener('click', onClick)
+
   const loop = () => {
     const t = props.progress.value
     manager.update(t, props.context)
     props.flight.getPose(t, camera.position, lookTarget)
     camera.lookAt(lookTarget)
+    setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)
     renderer.render(scene, camera)
     rafId = requestAnimationFrame(loop)
   }
@@ -77,6 +127,9 @@ onMounted(() => {
   onBeforeUnmount(() => {
     cancelAnimationFrame(rafId)
     window.removeEventListener('resize', resize)
+    canvas.value?.removeEventListener('pointermove', onPointerMove)
+    canvas.value?.removeEventListener('pointerleave', onPointerLeave)
+    canvas.value?.removeEventListener('click', onClick)
     if (flightDebug) {
       scene.remove(flightDebug.group)
       flightDebug.dispose()
