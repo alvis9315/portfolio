@@ -3,6 +3,7 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
 import { lightingPresets } from './stage/lights.js'
 import { createSceneManager } from './stage/lazyScenes.js'
+import { createFlightDebug } from './stage/debugPath.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -24,7 +25,7 @@ const props = defineProps({
 })
 
 const canvas = ref(null)
-let renderer, camera, scene, manager, cleanupLights, rafId
+let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug
 const lookTarget = new THREE.Vector3()
 
 onMounted(() => {
@@ -45,6 +46,12 @@ onMounted(() => {
         `position ${issue.positionGap.toFixed(2)}, look ${issue.lookGap.toFixed(2)}`
       )
     }
+  }
+
+  // 開發期 ?debug：把 flight / look 路徑畫進場景，調座標時肉眼對照
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('debug')) {
+    flightDebug = createFlightDebug(props.flight)
+    scene.add(flightDebug.group)
   }
 
   const resize = () => {
@@ -70,6 +77,10 @@ onMounted(() => {
   onBeforeUnmount(() => {
     cancelAnimationFrame(rafId)
     window.removeEventListener('resize', resize)
+    if (flightDebug) {
+      scene.remove(flightDebug.group)
+      flightDebug.dispose()
+    }
     manager.destroy()
     cleanupLights?.()
     renderer.dispose()
