@@ -151,7 +151,7 @@ p {
 .hint {
   position: fixed;
   left: 50%;
-  bottom: 28px;
+  bottom: calc(28px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   font-size: 11px;
   letter-spacing: 0.3em;

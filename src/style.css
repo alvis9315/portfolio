@@ -5,8 +5,16 @@
   --bg: #0f1729;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  /* 手機:禁止 iOS 直向/橫向切換時自動放大內文 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+  /* 手機:頁首下拉不觸發 reload,避免打斷 scroll 飛行;點擊不閃灰底 */
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
 }
