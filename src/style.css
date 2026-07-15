@@ -1,0 +1,12 @@
+:root {
+  --ink: #e8eef5;
+  --accent: #ffd787;
+  --dim: #8fa3b8;
+  --bg: #0f1729;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+}
