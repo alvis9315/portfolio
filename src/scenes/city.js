@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { flat, glow, box, island, palette, seededRandom } from '../flight/stage/materials.js'
+import { flat, glow, focus, box, island, palette, seededRandom } from '../flight/stage/materials.js'
 
 /**
  * 場景 02：城市（Projects）——真實內容整合的示範場景。
@@ -29,7 +29,8 @@ export function buildCity(ctx = {}) {
     const bx = side * (3.5 + rnd() * 1.5)
     const bz = -6 + i * 4.5
     const bh = p.height || 6
-    const b = box(B, 2.4, bh, 2.4, flat(colors[i % colors.length]), bx, bh / 2, bz)
+    // 地標樓是焦點物件：換 focus() PBR,和背景平光小樓拉出層次(hover emissive 仍相容)
+    const b = box(B, 2.4, bh, 2.4, focus(colors[i % colors.length]), bx, bh / 2, bz)
     b.userData.project = p
     addWindows(bx, bz, 2.4, 2.4, bh)
     box(B, 0.6, 0.25, 0.06, glow(palette.screenGlow), bx, bh + 0.3, bz) // 樓頂識別燈

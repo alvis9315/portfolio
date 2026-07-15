@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { flat, glow, box, island, palette } from '../flight/stage/materials.js'
+import { flat, glow, focus, box, island, palette } from '../flight/stage/materials.js'
 
 /**
  * 場景 01：工作桌（About）。
@@ -17,9 +17,10 @@ export function buildWorkbench() {
   }
 
   // 螢幕（發光面是這個場景的視覺焦點，也是 dolly-in 的 target）
-  box(A, 2.4, 1.5, 0.12, flat(palette.device), 0, 2.7, -0.5)
+  // 外殼與支架換 focus() PBR，發光面維持 glow（unlit，靠自發光）
+  box(A, 2.4, 1.5, 0.12, focus(palette.device), 0, 2.7, -0.5)
   box(A, 2.1, 1.2, 0.02, glow(palette.screenGlow), 0, 2.7, -0.43)
-  box(A, 0.3, 0.7, 0.3, flat(palette.device), 0, 1.95, -0.5)
+  box(A, 0.3, 0.7, 0.3, focus(palette.device), 0, 1.95, -0.5)
   box(A, 1.6, 0.08, 0.6, flat(palette.steel), 0, 1.77, 0.55)
 
   // 周邊小物

@@ -37,6 +37,15 @@ export const glow = (c) => new THREE.MeshBasicMaterial({ color: c })
 export const standard = (c, opts = {}) =>
   new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, metalness: 0.05, ...opts })
 
+/**
+ * 焦點物件材質（克制版 PBR）：焦點物件（螢幕外殼、城市地標樓）專用。
+ * roughness 0.5 + 低 metalness → 方向光下有微微高光層次，和平光背景（flat）
+ * 拉出「這是焦點」的細微對比，但不破壞整體 low-poly 調性。
+ * 要整批調焦點手感只改這一行（換 flat 主導就把數值往 standard 靠）。
+ */
+export const focus = (c, opts = {}) =>
+  new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.15, ...opts })
+
 /** 建模 helper：加一個 box 到 parent */
 export function box(parent, w, h, d, mat, x = 0, y = 0, z = 0, ry = 0) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
