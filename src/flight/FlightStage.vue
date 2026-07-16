@@ -155,7 +155,12 @@ onMounted(() => {
     setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)
     // Reflector 的反射貼圖在 composer 之外先手動更新（見 city.js 的 updateReflection
     // 註解）——Reflector 的原生 hook 若在 composer pass 內觸發會弄髒 viewport。
-    scene.traverse((o) => o.userData.updateReflection?.(renderer, scene, camera))
+    scene.traverse((o) => {
+      if (!o.userData.updateReflection) return
+      // lazy margin 會提早掛載城市；若任一祖先為 invisible，就不要白做一次完整反射渲染。
+      for (let p = o; p; p = p.parent) if (!p.visible) return
+      o.userData.updateReflection(renderer, scene, camera)
+    })
     composer.render()
     rafId = requestAnimationFrame(loop)
   }

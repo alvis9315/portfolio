@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
-import { Text } from 'troika-three-text'
 import { glass, glassFacade, glassGridOverlay, litWindow, flat, standard, emissive, galvanizedSteel, box, island, palette, seededRandom } from '../flight/stage/materials.js'
 
 /**
@@ -10,30 +9,6 @@ import { glass, glassFacade, glassGridOverlay, litWindow, flat, standard, emissi
  *    整面玻璃映射「對面的大型霓虹看板」——一塊霓虹字 = 一個作品（userData.project）。
  * 玻璃底色反射另由 scene.environment 提供；霓虹靠自發光。維持深夜。
  */
-
-const NEON = [0x18e0ff, 0xff43c4, 0xffd166, 0x7cff6b]
-
-/**
- * 霓虹招牌：troika-three-text SDF 文字（任何距離都銳利，outlineBlur 做霓虹光暈）。
- * 招牌的「主要觀看方式」是玻璃反射：scale.x = -1 預先鏡像，反射再翻一次字就正了
- * （直視招牌本體是反的，可接受）。字型預設從 CDN 載 Roboto——TODO 之後自架字型檔。
- */
-function neonSign(name, hex) {
-  const t = new Text()
-  t.text = name
-  t.fontSize = 0.62 // 看板寬 6.2，最長專案名要塞得下
-  t.color = hex
-  t.anchorX = 'center'
-  t.anchorY = 'middle'
-  t.outlineBlur = 0.14 // 霓虹光暈
-  t.outlineColor = hex
-  t.outlineOpacity = 0.85
-  t.material.side = THREE.DoubleSide
-  t.rotation.y = Math.PI // 面向 -z（朝玻璃）
-  t.scale.x = -1 // 預先鏡像（見上）
-  t.sync()
-  return t
-}
 
 /** 看板彩蛋：少量共生體殘留與蛛網，只有貼近看板時才會發現。 */
 function addSpiderManEasterEgg(parent) {
@@ -109,7 +84,6 @@ function addSpiderManEasterEgg(parent) {
 }
 
 export function buildCity(ctx = {}) {
-  const projects = ctx.content?.projects || []
   const g = new THREE.Group()
   const B = island(g, 34, 26, 60, -2, -30)
   const rnd = seededRandom(7)
@@ -267,9 +241,24 @@ export function buildCity(ctx = {}) {
   // 戶外看板背架多為鍍鋅鋼：銀灰、偏霧面，不是黑色烤漆。
   const frameMat = galvanizedSteel(0xa8adb1)
   const backMat = galvanizedSteel(0x858b90, { roughness: 0.62, metalness: 0.58 })
-  const boardMat = emissive(0x172235, 0.28, { roughness: 0.34, metalness: 0.18 })
+  const billboardTex = new THREE.TextureLoader().load('/textures/system-billboard.png')
+  billboardTex.colorSpace = THREE.SRGBColorSpace
+  billboardTex.anisotropy = 8
+  // 主要觀看方式是 hero 玻璃反射；先水平鏡像，經 Reflector 再翻一次後文字才可讀。
+  billboardTex.wrapS = THREE.RepeatWrapping
+  billboardTex.repeat.x = -1
+  billboardTex.offset.x = 1
+  const boardMat = standard(0xffffff, {
+    map: billboardTex,
+    emissive: 0xffffff,
+    emissiveMap: billboardTex,
+    emissiveIntensity: 0.32,
+    roughness: 0.38,
+    metalness: 0.08,
+  })
   box(B, 6.6, 5.2, 0.22, backMat, 0, 10.15, 0.3) // 鍍鋅鋼背板
-  box(B, 6.28, 4.88, 0.04, boardMat, 0, 10.15, 0.16) // 微發光看板面
+  // 原圖 1402×1122（1.25:1），保留比例鋪在正面，不再疊三行霓虹文字。
+  box(B, 6.1, 4.88, 0.04, boardMat, 0, 10.15, 0.16)
   for (const x of [-2.45, 0, 2.45]) {
     box(B, 0.12, 2.1, 0.12, frameMat, x, 8.05, 1.05) // 後方鋼柱
     const brace = box(B, 0.08, 2.2, 0.08, frameMat, x, 8.2, 0.72)
@@ -282,12 +271,6 @@ export function buildCity(ctx = {}) {
     for (let x = -3.2; x <= 3.2; x += 0.8) box(B, 0.05, 0.65, 0.05, frameMat, x, 7.86, z)
   }
   addSpiderManEasterEgg(B)
-  projects.forEach((p, i) => {
-    const sign = neonSign(p.name, NEON[i % NEON.length])
-    sign.position.set(0, 11.65 - i * 1.5, 0.12)
-    sign.userData.project = p
-    B.add(sign)
-  })
 
   // 密集樓群：車道沿 x 軸貫穿，樓只分布在道路南北兩側；另外避開 hero 與看板樓。
   // 生成範圍擴到整座島，補掉原本右後方與邊角的大面積空洞。
@@ -309,8 +292,8 @@ export function buildCity(ctx = {}) {
 
 /** 城市可提前 build 預載，但在書桌 shot 結束前整組保持不可見，避免月球／樓群穿幫。 */
 export function updateCity(group, t) {
-  group.visible = t >= 0.34
+  group.visible = t >= 0.16 && t <= 0.39
   // 桌面仍占畫面時絕不顯示月球；接近城市 establishing shot 才出現。
-  if (group.userData.cityMoon) group.userData.cityMoon.visible = t >= 0.46
-  if (group.userData.cityMoonHalo) group.userData.cityMoonHalo.visible = t >= 0.46
+  if (group.userData.cityMoon) group.userData.cityMoon.visible = t >= 0.2 && t <= 0.39
+  if (group.userData.cityMoonHalo) group.userData.cityMoonHalo.visible = t >= 0.2 && t <= 0.39
 }

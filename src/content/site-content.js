@@ -8,7 +8,7 @@ export const site = {
   sections: [
     {
       id: 'hero',
-      range: [0.0, 0.16],
+      range: [0.0, 0.075],
       position: { left: '6vw', top: '18vh' },
       eyebrow: 'Portfolio · Flight 01',
       title: 'Alvis — Full-Stack Engineering Lead',
@@ -16,7 +16,7 @@ export const site = {
     },
     {
       id: 'about',
-      range: [0.18, 0.34],
+      range: [0.08, 0.17],
       position: { right: '4vw', top: '11vh', textAlign: 'right', maxWidth: '360px' },
       eyebrow: '01 — Workbench',
       title: '一切從這張桌子開始',
@@ -24,12 +24,45 @@ export const site = {
     },
     {
       id: 'projects',
-      range: [0.46, 0.68],
+      range: [0.2, 0.35],
       // 城市遠景左上方的天空留白：與第一幕錯開高度，也避開月球與建築輪廓。
       position: { left: '6vw', top: '22vh', textAlign: 'left', maxWidth: '460px' },
       eyebrow: '02 — Systems',
       title: '打造會被使用的系統',
       body: '每一棟樓是一個 project。',
+    },
+    {
+      id: 'drone-ops',
+      range: [0.4, 0.51],
+      position: { right: '6vw', top: '18vh', textAlign: 'right', maxWidth: '560px' },
+      eyebrow: '03 — Mission Control',
+      title: '讓每一次飛行都有任務脈絡',
+      body: '從巡檢、航拍到任務派遣，把位置、狀態與風險收進同一張即時地圖。',
+    },
+    {
+      id: 'delivery',
+      range: [0.56, 0.67],
+      position: { left: '6vw', top: '17vh', textAlign: 'left', maxWidth: '470px' },
+      eyebrow: '04 — Delivery',
+      title: '把複雜系統帶到穩定交付',
+      body: '串起服務拓撲、部署節奏與異常回應，讓團隊看見同一個真實狀態。',
+    },
+    {
+      id: 'ai-lab',
+      range: [0.72, 0.84],
+      position: { right: '5vw', top: '13vh', textAlign: 'right', maxWidth: '470px' },
+      eyebrow: '05 — AI × FigureShot',
+      title: '把研究變成能被使用的創作工具',
+      body: '文件經過 Embedding、檢索與 RAG，另一側則把靈感落進真實攝影棚。',
+      link: { label: 'FIGURE PHOTOGRAPHY · @figsman99', url: 'https://www.instagram.com/figsman99/' },
+    },
+    {
+      id: 'contact',
+      range: [0.9, 1.0],
+      position: { left: '50%', top: '10vh', transform: 'translateX(-50%)', textAlign: 'center', maxWidth: '760px' },
+      eyebrow: '06 — What Comes Next',
+      title: "I build systems, lead delivery, and explore what's next with AI.",
+      body: 'Alvis Wu · Full-Stack Engineering Lead × Solution Engineer × AI Explorer',
     },
   ],
 

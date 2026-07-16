@@ -232,12 +232,11 @@ export function buildWorkbench() {
   return g
 }
 
-/** 隨 progress 讓螢幕漸亮：遠處全暗 → dolly-in 拉近途中漸層亮起（0.1–0.3）。 */
+/** 隨 progress 讓螢幕漸亮：遠處全暗 → 第一幕 dolly-in 停穩前全亮。 */
 export function updateWorkbench(group, t) {
   const m = group.userData.screenMat
   if (!m) return
-  // 從最遠端開始喚醒，dolly-in 停穩(t=0.3)時剛好全亮；輪播內容應在停穩後才開始。
-  const k = THREE.MathUtils.smoothstep(t, 0.02, 0.29)
+  const k = THREE.MathUtils.smoothstep(t, 0.01, 0.135)
   m.color.setScalar(0.08 + k * 0.92)
   m.emissive.setScalar(1)
   m.emissiveIntensity = k * 0.18

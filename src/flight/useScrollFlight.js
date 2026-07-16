@@ -13,6 +13,11 @@ export function useScrollFlight({ damping = 0.08 } = {}) {
   const progress = ref(0) // 平滑後，給鏡頭與 UI 用
   const raw = ref(0)      // 未平滑，需要精準對齊捲動位置時用
   let rafId = 0
+  // 開發驗收入口：?t=.45 可直接定格指定場景；production 完全忽略。
+  const debugT = import.meta.env.DEV && typeof window !== 'undefined'
+    ? Number(new URLSearchParams(window.location.search).get('t'))
+    : Number.NaN
+  const hasDebugT = Number.isFinite(debugT)
 
   const reduced =
     typeof window !== 'undefined' &&
@@ -20,6 +25,11 @@ export function useScrollFlight({ damping = 0.08 } = {}) {
   const k = reduced ? 1 : damping
 
   const read = () => {
+    if (hasDebugT) {
+      raw.value = Math.min(Math.max(debugT, 0), 1)
+      progress.value = raw.value
+      return
+    }
     const max = document.documentElement.scrollHeight - window.innerHeight
     raw.value = max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0
   }

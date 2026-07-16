@@ -5,7 +5,7 @@ import * as THREE from 'three'
  * 大球內面畫「天頂 → 地平線 → 地面」三段漸層（shader），並由 progress 驅動
  * 「深夜 → 破曉」的顏色插值；fog 顏色同步地平線色（氛圍鐵律：fog = 背景）。
  *
- * 時間曲線（暫定，場景 5/6 就緒後再校）：t < 0.6 深夜，0.6 → 1.0 漸亮到破曉。
+ * 時間曲線：第 1–4 幕深夜，第 5 幕開始回暖，第 6 幕抵達破曉。
  * 敘事：從摸黑起步，走到黎明。
  */
 
@@ -16,9 +16,10 @@ const NIGHT = {
   bottom: new THREE.Color(0x080d18),
 }
 const DAWN = {
-  top: new THREE.Color(0x2b3a66),
-  horizon: new THREE.Color(0xd98a5a),
-  bottom: new THREE.Color(0x1c1a2e),
+  // 冷藍破曉：暖意由第六幕的方向光提供，天空本身不整片變成濁橘褐。
+  top: new THREE.Color(0x182b48),
+  horizon: new THREE.Color(0x526f8b),
+  bottom: new THREE.Color(0x1b2333),
 }
 
 export function createSky() {
@@ -99,16 +100,16 @@ export function createSky() {
 
   /** 每 frame 呼叫：t 驅動夜→曉插值，fog 顏色跟地平線色、fog 範圍隨旅程放晴。 */
   function update(t, fog) {
-    const k = THREE.MathUtils.clamp((t - 0.6) / 0.4, 0, 1)
+    const k = THREE.MathUtils.clamp((t - 0.7) / 0.3, 0, 1)
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, k)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, k)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, k)
     uniforms.bendTime.value = performance.now() * 0.001
-    uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.22, 0.34))
+    uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
-      // 第一幕近霧（far 55 藏住城市不早洩），離開書桌後（t>0.34）放晴讓城市遠景清楚
-      const clear = THREE.MathUtils.clamp((t - 0.34) / 0.12, 0, 1)
+      // 第一幕近霧藏住城市；離開書桌後放晴，後續場景各自用 visible 區間隔離。
+      const clear = THREE.MathUtils.clamp((t - 0.16) / 0.08, 0, 1)
       fog.near = 30 - 6 * clear
       fog.far = 55 + 60 * clear
     }
