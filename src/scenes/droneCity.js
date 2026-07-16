@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, seededRandom, standard } from '../flight/stage/materials.js'
 
-/** 第三幕：高空俯視的無人機任務城市。造型借用 EDITH 的緊湊機身語言，但移除武器。 */
+/** 第三幕：以無人機高空視角隱喻全端視野；它是視覺主題，不宣稱真實無人機專案。 */
 export function buildDroneCity() {
   const g = new THREE.Group()
   const B = island(g, 34, 28, 122, -1.5, -78)
@@ -77,7 +77,7 @@ export function buildDroneCity() {
     drones.push(d)
   })
 
-  // 高空任務 HUD：抽象資訊條，不使用真實客戶或系統資料。
+  // 抽象系統脈絡 HUD：只作為 Portfolio 的視覺語言，不描述無人機職責。
   const hud = new THREE.Group()
   const panel = standard(0x102638, { transparent: true, opacity: 0.72, roughness: 0.24, metalness: 0.25 })
   box(hud, 5.2, 2.6, 0.08, panel, 0, 0, 0)

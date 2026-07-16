@@ -14,9 +14,11 @@ export function useScrollFlight({ damping = 0.08 } = {}) {
   const raw = ref(0)      // 未平滑，需要精準對齊捲動位置時用
   let rafId = 0
   // 開發驗收入口：?t=.45 可直接定格指定場景；production 完全忽略。
-  const debugT = import.meta.env.DEV && typeof window !== 'undefined'
-    ? Number(new URLSearchParams(window.location.search).get('t'))
-    : Number.NaN
+  const debugParams = import.meta.env.DEV && typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null
+  // Number(null) 會得到 0；必須先確認參數存在，否則一般瀏覽會永遠被鎖在第一幕。
+  const debugT = debugParams?.has('t') ? Number(debugParams.get('t')) : Number.NaN
   const hasDebugT = Number.isFinite(debugT)
 
   const reduced =

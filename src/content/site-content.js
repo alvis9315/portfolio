@@ -35,9 +35,9 @@ export const site = {
       id: 'drone-ops',
       range: [0.4, 0.51],
       position: { right: '6vw', top: '18vh', textAlign: 'right', maxWidth: '560px' },
-      eyebrow: '03 — Mission Control',
-      title: '讓每一次飛行都有任務脈絡',
-      body: '從巡檢、航拍到任務派遣，把位置、狀態與風險收進同一張即時地圖。',
+      eyebrow: '03 — Perspective',
+      title: '在複雜系統中找到清楚航線',
+      body: '從需求、架構到交付風險，以全端視角掌握脈絡，讓團隊知道現在在哪裡、下一步往哪裡走。',
     },
     {
       id: 'delivery',

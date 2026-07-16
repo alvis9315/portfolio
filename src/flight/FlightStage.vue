@@ -35,6 +35,9 @@ const emit = defineEmits(['select'])
 const canvas = ref(null)
 let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, composer, nightEnv, sky
 const lookTarget = new THREE.Vector3()
+const morningSkyLight = new THREE.Color(0xc9ddf2)
+const morningGroundLight = new THREE.Color(0x6d5848)
+const morningSunLight = new THREE.Color(0xfff0d4)
 
 onMounted(() => {
   renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true })
@@ -150,6 +153,19 @@ onMounted(() => {
     const t = props.progress.value
     manager.update(t, props.context)
     sky.update(t, scene.fog)
+    // 第二幕起配合天空由月夜逐步轉為晨光，模型本身也同步提亮。
+    const daylight = THREE.MathUtils.smoothstep(t, 0.17, 1)
+    const hemi = scene.getObjectByName('journey-hemi')
+    const sun = scene.getObjectByName('journey-sun')
+    if (hemi) {
+      hemi.intensity = THREE.MathUtils.lerp(0.72, 0.98, daylight)
+      hemi.color.set(0x7fb5a8).lerp(morningSkyLight, daylight)
+      hemi.groundColor.set(0x1b2537).lerp(morningGroundLight, daylight)
+    }
+    if (sun) {
+      sun.intensity = THREE.MathUtils.lerp(0.58, 0.88, daylight)
+      sun.color.set(0xffd39b).lerp(morningSunLight, daylight)
+    }
     props.flight.getPose(t, camera.position, lookTarget)
     camera.lookAt(lookTarget)
     setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)

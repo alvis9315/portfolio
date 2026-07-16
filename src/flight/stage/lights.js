@@ -43,6 +43,8 @@ export const lightingPresets = {
     scene.fog = new THREE.Fog(0x0f1729, 30, 60)
     const hemi = new THREE.HemisphereLight(0x7fb5a8, 0x1b2537, 0.85)
     const sun = new THREE.DirectionalLight(0xffe6c0, 0.7)
+    hemi.name = 'journey-hemi'
+    sun.name = 'journey-sun'
     sun.position.set(-30, 50, 20)
     scene.add(hemi, sun)
     const removeStars = addStars(scene)

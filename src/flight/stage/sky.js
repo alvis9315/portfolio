@@ -3,10 +3,9 @@ import * as THREE from 'three'
 /**
  * 漸層天空穹頂 + 時間系統：背景不再是死平的單色。
  * 大球內面畫「天頂 → 地平線 → 地面」三段漸層（shader），並由 progress 驅動
- * 「深夜 → 破曉」的顏色插值；fog 顏色同步地平線色（氛圍鐵律：fog = 背景）。
+ * 「深夜 → 金色破曉 → 清晨」的顏色插值；fog 顏色同步地平線色（氛圍鐵律：fog = 背景）。
  *
- * 時間曲線：第 1–4 幕深夜，第 5 幕開始回暖，第 6 幕抵達破曉。
- * 敘事：從摸黑起步，走到黎明。
+ * 時間曲線：第二幕大樓開始出現暖黃地平線，第三至五幕持續天亮，第六幕抵達早晨。
  */
 
 const NIGHT = {
@@ -16,10 +15,16 @@ const NIGHT = {
   bottom: new THREE.Color(0x080d18),
 }
 const DAWN = {
-  // 冷藍破曉：暖意由第六幕的方向光提供，天空本身不整片變成濁橘褐。
-  top: new THREE.Color(0x182b48),
-  horizon: new THREE.Color(0x526f8b),
-  bottom: new THREE.Color(0x1b2333),
+  // 恢復原本城市接上的金色破曉；暖色集中在地平線，不把整片天空染成褐色。
+  top: new THREE.Color(0x243b65),
+  horizon: new THREE.Color(0x915b38),
+  bottom: new THREE.Color(0x15192c),
+}
+const MORNING = {
+  // 太陽升起後暖橘退回清晨藍灰，避免第五、六幕一直停在整片橘色。
+  top: new THREE.Color(0x557ba7),
+  horizon: new THREE.Color(0x9eb2c3),
+  bottom: new THREE.Color(0x435a72),
 }
 
 export function createSky() {
@@ -100,10 +105,11 @@ export function createSky() {
 
   /** 每 frame 呼叫：t 驅動夜→曉插值，fog 顏色跟地平線色、fog 範圍隨旅程放晴。 */
   function update(t, fog) {
-    const k = THREE.MathUtils.clamp((t - 0.7) / 0.3, 0, 1)
-    uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, k)
-    uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, k)
-    uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, k)
+    const dawn = THREE.MathUtils.smoothstep(t, 0.17, 0.5)
+    const morning = THREE.MathUtils.smoothstep(t, 0.5, 1.0)
+    uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, dawn).lerp(MORNING.top, morning)
+    uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, dawn).lerp(MORNING.horizon, morning)
+    uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, dawn).lerp(MORNING.bottom, morning)
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     if (fog) {
