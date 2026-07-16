@@ -38,7 +38,9 @@ export const lightingPresets = {
   /** 暮色：PoC 的預設氛圍。冷色天光 + 暖色斜射 + 星空 */
   dusk(scene) {
     scene.background = new THREE.Color(0x0f1729)
-    scene.fog = new THREE.Fog(0x0f1729, 30, 120)
+    // far 收到 60：讓相鄰的島（相距 ~68）在還沒飛過去前被 fog 藏住，
+    // 不會「第一幕還沒結束就看到第二幕」。到定格時（距 ~28）才清楚可見。
+    scene.fog = new THREE.Fog(0x0f1729, 30, 60)
     const hemi = new THREE.HemisphereLight(0x7fb5a8, 0x1b2537, 0.85)
     const sun = new THREE.DirectionalLight(0xffe6c0, 0.7)
     sun.position.set(-30, 50, 20)

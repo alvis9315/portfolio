@@ -2,12 +2,12 @@
 import { ref } from 'vue'
 import { useScrollFlight } from './flight/useScrollFlight.js'
 import { composeShots } from './flight/composeShots.js'
-import { dollyIn, flyThrough, line } from './flight/shots.js'
+import { dollyIn, line } from './flight/shots.js'
 import { easeInOutCubic, easeInOutSine, easeOutCubic } from './flight/easing.js'
 import FlightStage from './flight/FlightStage.vue'
 import FlightCaption from './flight/FlightCaption.vue'
 import ProjectCard from './ui/ProjectCard.vue'
-import { buildWorkbench } from './scenes/workbench.js'
+import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity } from './scenes/city.js'
 import { buildMountains } from './scenes/mountains.js'
 import { site } from './content/site-content.js'
@@ -18,43 +18,57 @@ const ctl = useScrollFlight({ damping: 0.08 })
 /* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
  * 城市場景的可見 t 區間 = flyThrough 段，卡片離開此區間自動淡出。 */
 const activeProject = ref(null)
-const CITY_RANGE = [0.34, 0.78]
+const CITY_RANGE = [0.34, 0.8]
 
 /* ── 2 + 3. Shot 層 + 編排層 ───────────────────────────────
- * 三段刻意用三種不同運鏡示範，接縫座標寫成常數保證 frame-identical。
- * range 之間留了 gap（0.30–0.34、0.74–0.80）= 鏡頭 hold，給閱讀時間。 */
-const SEAM_1 = { pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }   // 桌前
-const SEAM_2 = { pos: [88, 8, -50], look: [110, 12, -64] }    // 城市離場
+ * 城市是「兩拍式」（參考 Spider-Man PS5）：
+ *   拍 1 CITY_SKYLINE：大樓林立的遠景 hold（0.50–0.56）
+ *   拍 2 CITY_GLASS：突然拉超近貼 hero 玻璃帷幕，整面玻璃映射對面
+ *     大型霓虹看板（作品）——hold（0.63–0.72）給閱讀/點選。
+ * 其餘 gap = 鏡頭 hold。接縫全部走常數（seam rule）。 */
+const SEAM_1 = { pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }        // 桌前
+const CITY_SKYLINE = { pos: [90, 19, -4], look: [57, 4, -32] }     // 拍 1：東北高空俯瞰，大樓林立的廣角遠景
+const CITY_GLASS = { pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] } // 拍 2：窄巷內貼玻璃帷幕（反射對街看板）
+const SEAM_2 = { pos: [88, 8, -50], look: [110, 12, -64] }         // 城市離場
 
 const flight = composeShots([
   {
-    // 原 repo 的招牌：dolly-in 直逼螢幕，收尾減速「停穩」
+    // 招牌 dolly-in 直逼螢幕，收尾減速「停穩」（螢幕也在這段漸亮）
     shot: dollyIn({ from: [-20, 11, 30], to: SEAM_1.pos, target: SEAM_1.look }),
     range: [0.0, 0.3],
     easing: easeOutCubic,
   },
   {
-    // 穿越城市走廊
-    shot: flyThrough({
-      path: [SEAM_1.pos, [12, 5, -4], [30, 7, -14], [48, 4, -24], [60, 1.4, -30], [70, 3.5, -38], SEAM_2.pos],
-      look: [SEAM_1.look, [30, 4, -18], [60, 2, -30], [66, 3, -36], SEAM_2.look],
-    }),
-    range: [0.34, 0.74],
+    // 書桌 → 城市天際線：直線滑移（純 lerp 最順，無樣條 overshoot）
+    shot: line({ fromPos: SEAM_1.pos, toPos: CITY_SKYLINE.pos, fromLook: SEAM_1.look, toLook: CITY_SKYLINE.look }),
+    range: [0.34, 0.5],
+    easing: easeInOutSine,
+  },
+  {
+    // 拍 1 hold 後「突然拉超近」貼玻璃帷幕（range 短 = 體感快）
+    shot: line({ fromPos: CITY_SKYLINE.pos, toPos: CITY_GLASS.pos, fromLook: CITY_SKYLINE.look, toLook: CITY_GLASS.look }),
+    range: [0.56, 0.63],
+    easing: easeInOutCubic,
+  },
+  {
+    // 拍 2 hold 後離場：滑向城市邊緣 SEAM_2
+    shot: line({ fromPos: CITY_GLASS.pos, toPos: SEAM_2.pos, fromLook: CITY_GLASS.look, toLook: SEAM_2.look }),
+    range: [0.72, 0.8],
     easing: easeInOutSine,
   },
   {
     // 爬升到山峰，視線轉向月亮
     shot: line({ fromPos: SEAM_2.pos, toPos: [126, 20, -70], fromLook: SEAM_2.look, toLook: [150, 34, -100] }),
-    range: [0.8, 1.0],
+    range: [0.84, 1.0],
     easing: easeInOutCubic,
   },
 ])
 
 /* ── 場景 registry（lazy 建構）────────────────────────── */
 const scenes = [
-  { id: 'workbench', range: [0.0, 0.4], build: () => buildWorkbench() },
-  { id: 'city', range: [0.3, 0.78], build: (ctx) => buildCity(ctx) },
-  { id: 'mountains', range: [0.7, 1.0], build: () => buildMountains() },
+  { id: 'workbench', range: [0.0, 0.4], build: () => buildWorkbench(), update: updateWorkbench },
+  { id: 'city', range: [0.3, 0.82], build: (ctx) => buildCity(ctx) },
+  { id: 'mountains', range: [0.72, 1.0], build: () => buildMountains() },
 ]
 </script>
 

@@ -1,10 +1,14 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { lightingPresets } from './stage/lights.js'
 import { createSceneManager } from './stage/lazyScenes.js'
 import { createFlightDebug } from './stage/debugPath.js'
-import { palette } from './stage/materials.js'
+import { createNightEnv } from './stage/environment.js'
+import { createSky } from './stage/sky.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -29,7 +33,7 @@ const props = defineProps({
 const emit = defineEmits(['select'])
 
 const canvas = ref(null)
-let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug
+let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, composer, nightEnv, sky
 const lookTarget = new THREE.Vector3()
 
 onMounted(() => {
@@ -40,6 +44,13 @@ onMounted(() => {
   camera = new THREE.PerspectiveCamera(props.fov, 1, 0.1, 400)
 
   cleanupLights = (lightingPresets[props.lighting] || lightingPresets.dusk)(scene)
+  // 夜景環境貼圖：玻璃鏡面大樓的反射來源（scene.environment 自動套到所有 PBR 材質）
+  nightEnv = createNightEnv(renderer)
+  scene.environment = nightEnv.texture
+  // 漸層天空穹頂（時間系統）：取代 preset 的死平單色背景
+  sky = createSky()
+  scene.add(sky.mesh)
+  scene.background = null
   manager = createSceneManager(scene, props.scenes)
 
   // 開發期 seam 檢查：接縫不連續會在 console 警告
@@ -58,10 +69,22 @@ onMounted(() => {
     scene.add(flightDebug.group)
   }
 
+  // Bloom 後製：讓發光物件（螢幕/窗燈/樓頂燈/月亮）暈開，拉「3D 動畫感」。
+  // threshold 0.6 只讓夠亮的 emissive（glow 材質）發散，暗building 不受影響。
+  // 參數 (resolution, strength, radius, threshold)——想更誇張調 strength。
+  composer = new EffectComposer(renderer)
+  composer.addPass(new RenderPass(scene, camera))
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.55, 0.6))
+
   const resize = () => {
     const w = window.innerWidth
     const h = window.innerHeight
-    renderer.setSize(w, h, false)
+    // updateStyle=true（預設）：讓 renderer 直接寫 inline canvas.style 寬高(px)。
+    // 不可省成 setSize(w,h,false)——那會改靠 scoped CSS 撐大小,scoped style 一旦
+    // 沒套上(累積多次 HMR / server 重啟後的舊分頁),canvas 會膨脹成 drawing buffer
+    // 尺寸(DPR 2 → 兩倍視窗),內容被擠到右下角。inline 寬高才是穩的。
+    renderer.setSize(w, h)
+    composer.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
   }
@@ -90,11 +113,21 @@ onMounted(() => {
 
   const setHover = (mesh) => {
     if (mesh === hovered) return
-    if (hovered) hovered.material.emissive.setHex(hoveredEmissive) // 還原前一棟
+    if (hovered) {
+      // 還原前一個：有 emissive 的（樓）還原色，沒有的（霓虹字）還原 scale
+      if (hovered.material?.emissive) hovered.material.emissive.setHex(hoveredEmissive)
+      else if (hovered.userData.baseScale) hovered.scale.copy(hovered.userData.baseScale)
+    }
     hovered = mesh
     if (hovered) {
-      hoveredEmissive = hovered.material.emissive.getHex()
-      hovered.material.emissive.setHex(palette.screenGlow)
+      if (hovered.material?.emissive) {
+        hoveredEmissive = hovered.material.emissive.getHex()
+        // 暗青微亮。不可用滿亮 screenGlow——會把整棟樓塗成死青色像破圖。
+        hovered.material.emissive.setHex(0x2f4a43)
+      } else {
+        hovered.userData.baseScale = hovered.userData.baseScale || hovered.scale.clone()
+        hovered.scale.copy(hovered.userData.baseScale).multiplyScalar(1.12) // 霓虹字放大當高亮
+      }
     }
     canvas.value.style.cursor = hovered ? 'pointer' : ''
   }
@@ -116,10 +149,14 @@ onMounted(() => {
   const loop = () => {
     const t = props.progress.value
     manager.update(t, props.context)
+    sky.update(t, scene.fog)
     props.flight.getPose(t, camera.position, lookTarget)
     camera.lookAt(lookTarget)
     setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)
-    renderer.render(scene, camera)
+    // Reflector 的反射貼圖在 composer 之外先手動更新（見 city.js 的 updateReflection
+    // 註解）——Reflector 的原生 hook 若在 composer pass 內觸發會弄髒 viewport。
+    scene.traverse((o) => o.userData.updateReflection?.(renderer, scene, camera))
+    composer.render()
     rafId = requestAnimationFrame(loop)
   }
   loop()
@@ -136,6 +173,12 @@ onMounted(() => {
     }
     manager.destroy()
     cleanupLights?.()
+    if (sky) {
+      scene.remove(sky.mesh)
+      sky.dispose()
+    }
+    nightEnv?.dispose()
+    composer.dispose()
     renderer.dispose()
   })
 })

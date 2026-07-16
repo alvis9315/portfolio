@@ -9,6 +9,7 @@ import { disposeGroup } from './materials.js'
  *     id: string,
  *     range: [a, b],          // 這個場景在飛行中「出鏡」的全域 t 區間
  *     build(ctx) => Group,     // 純函數：建好回傳 Group（不要自己 add 進 scene）
+ *     update?(group, t, ctx)   // 可選；場景在場時每 frame 呼叫（螢幕漸亮、無人機動畫…）
  *     dispose?(group)          // 可選；預設遍歷釋放 geometry / material
  *   }
  *
@@ -35,6 +36,7 @@ export function createSceneManager(scene, registry, { margin = 0.12 } = {}) {
         ;(entry.dispose || disposeGroup)(group)
         live.delete(entry.id)
       }
+      if (entry.update && live.has(entry.id)) entry.update(live.get(entry.id), t, ctx)
     }
   }
 

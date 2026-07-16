@@ -43,6 +43,7 @@ export const site = {
   projects: [
     { id: 'knowledge-inbox', name: 'Knowledge Inbox', height: 8 },
     { id: 'workbench-nexus', name: 'Workbench Nexus', height: 6.5 },
-    { id: 'project-3', name: '（下一個作品）', height: 5 },
+    // 佔位名用英文：城市霓虹字的字型（troika 預設 Roboto）沒有 CJK 字元
+    { id: 'project-3', name: 'Coming Soon', height: 5 },
   ],
 }

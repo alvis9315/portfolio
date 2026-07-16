@@ -9,6 +9,16 @@
 原理同 Apple 的 scroll-through 產品頁，但用 Three.js 即時渲染，**不使用任何影片素材**。
 技術棧：Vue 3 + Vite + Three.js，部署目標 GitHub Pages（vite base 已設 `'./'`）。
 
+## ⚠️ 兩種渲染路線（現行決策，動視覺前先讀）
+
+本專案的 scroll 視覺有**兩條可互換的路線**，共用同一 driver + UI + content，只差舞台元件：
+
+- **路線 A：Three.js 即時 3D（現用）** — `src/flight/FlightStage.vue`。低多邊形、零素材成本、可 raycast 互動。目前所有場景走這條。
+- **路線 B：AI 影片 scrub（官方 scroll-world 路線，待建）** — `src/stages/VideoStage.vue`（stub）。Higgsfield + Seedance/Kling 生成預渲染影片，精緻但付費、改內容要重生。
+
+**完整比較、共用契約、路線 B 實作管線，全在 [`docs/rendering-approaches.md`](docs/rendering-approaches.md)。**
+現階段：路線 A 進行中（正加場景 + 引入 GLTF/貼圖/後製拉近動畫感）；路線 B 只保留文件，尚未動工。
+
 ## 你手上的兩份檔案
 
 1. **`scroll-flight-skeleton.zip`** — 完整可跑的專案骨架。解壓後即為專案根目錄。
