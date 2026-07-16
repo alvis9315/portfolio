@@ -8,8 +8,7 @@ import FlightStage from './flight/FlightStage.vue'
 import FlightCaption from './flight/FlightCaption.vue'
 import ProjectCard from './ui/ProjectCard.vue'
 import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
-import { buildCity } from './scenes/city.js'
-import { buildMountains } from './scenes/mountains.js'
+import { buildCity, updateCity } from './scenes/city.js'
 import { site } from './content/site-content.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
@@ -56,19 +55,12 @@ const flight = composeShots([
     range: [0.72, 0.8],
     easing: easeInOutSine,
   },
-  {
-    // 爬升到山峰，視線轉向月亮
-    shot: line({ fromPos: SEAM_2.pos, toPos: [126, 20, -70], fromLook: SEAM_2.look, toLook: [150, 34, -100] }),
-    range: [0.84, 1.0],
-    easing: easeInOutCubic,
-  },
 ])
 
 /* ── 場景 registry（lazy 建構）────────────────────────── */
 const scenes = [
   { id: 'workbench', range: [0.0, 0.4], build: () => buildWorkbench(), update: updateWorkbench },
-  { id: 'city', range: [0.3, 0.82], build: (ctx) => buildCity(ctx) },
-  { id: 'mountains', range: [0.72, 1.0], build: () => buildMountains() },
+  { id: 'city', range: [0.3, 0.82], build: (ctx) => buildCity(ctx), update: updateCity },
 ]
 </script>
 

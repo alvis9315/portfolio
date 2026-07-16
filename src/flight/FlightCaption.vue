@@ -20,6 +20,8 @@ const opacity = computed(() => {
   const [a, b] = props.range
   const m = props.fade * (b - a)
   if (t < a || t > b) return 0
+  // 首幕在頁面載入時直接完整顯示；只保留離開區間時的淡出。
+  if (a === 0 && t <= b - m) return 1
   if (t < a + m) return (t - a) / m
   if (t > b - m) return (b - t) / m
   return 1

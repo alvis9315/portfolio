@@ -27,10 +27,12 @@ export function createNightEnv(renderer) {
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, size, size)
 
-  // 一顆亮點當「月/遠處光源」，玻璃上會有明顯 glint
-  const sun = ctx.createRadialGradient(size * 0.72, size * 0.4, 0, size * 0.72, size * 0.4, size * 0.12)
-  sun.addColorStop(0, 'rgba(255,240,214,0.95)')
-  sun.addColorStop(1, 'rgba(255,240,214,0)')
+  // 月亮在 IBL 中只提供寬廣柔光；真實月球由 city.js 繪製。
+  // 先前 0.95 的白色尖峰會在玻璃上反成過曝光球，與窗燈無關。
+  const sun = ctx.createRadialGradient(size * 0.72, size * 0.4, 0, size * 0.72, size * 0.4, size * 0.2)
+  sun.addColorStop(0, 'rgba(177,202,226,0.24)')
+  sun.addColorStop(0.42, 'rgba(139,170,201,0.12)')
+  sun.addColorStop(1, 'rgba(112,145,180,0)')
   ctx.fillStyle = sun
   ctx.fillRect(0, 0, size, size)
 

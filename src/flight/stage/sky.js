@@ -10,9 +10,10 @@ import * as THREE from 'three'
  */
 
 const NIGHT = {
-  top: new THREE.Color(0x0a1124),
-  horizon: new THREE.Color(0x1c2c4a),
-  bottom: new THREE.Color(0x090d16),
+  // 灰階深 navy：保留深夜層次，但降低飽和度，讓 oak／charcoal／黑色設備能待在同一空間。
+  top: new THREE.Color(0x050916),
+  horizon: new THREE.Color(0x14243d),
+  bottom: new THREE.Color(0x080d18),
 }
 const DAWN = {
   top: new THREE.Color(0x2b3a66),
@@ -25,6 +26,11 @@ export function createSky() {
     topColor: { value: NIGHT.top.clone() },
     horizonColor: { value: NIGHT.horizon.clone() },
     bottomColor: { value: NIGHT.bottom.clone() },
+    bendTime: { value: 0 },
+    bendOpacity: { value: 0.55 },
+    bendColor1: { value: new THREE.Color(0x00151f) },
+    bendColor2: { value: new THREE.Color(0x2969ae) },
+    bendColor3: { value: new THREE.Color(0x4b6c8b) },
   }
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -32,23 +38,60 @@ export function createSky() {
     uniforms,
     vertexShader: /* glsl */ `
       varying vec3 vPos;
+      varying vec2 vUv;
       void main() {
         vPos = position;
+        vUv = uv;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
       varying vec3 vPos;
+      varying vec2 vUv;
       uniform vec3 topColor;
       uniform vec3 horizonColor;
       uniform vec3 bottomColor;
+      uniform vec3 bendColor1;
+      uniform vec3 bendColor2;
+      uniform vec3 bendColor3;
+      uniform float bendTime;
+      uniform float bendOpacity;
       void main() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
         vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.45, -0.02, h));
         c = mix(c, topColor, smoothstep(0.03, 0.55, h));
-        // 微量抖動消除大面積漸層的色帶(banding)
+
+        // KnowledgeColorBends 的天空整合版：一個 renderer、一個天空 pass。
+        // rotation=100°, speed=.25, scale=1, frequency=1.8, warp=1, bandWidth=2.5。
+        vec2 p = vUv * 2.0 - 1.0;
+        p = vec2(p.x * -0.173648 - p.y * 0.984808,
+                 p.x *  0.984808 + p.y * -0.173648);
+        vec2 q = vec2(p.x * 1.777778, p.y);
+        q /= 0.5 + 0.2 * dot(q, q);
+        float bendT = bendTime * 0.25;
+        q += 0.2 * cos(bendT) - 7.56;
+
+        vec3 bends = vec3(0.0);
+        float cover = 0.0;
+        vec2 s = q;
+        for (int i = 0; i < 3; i++) {
+          s -= 0.01;
+          vec2 r = sin(1.5 * (s.yx * 1.8) + 2.0 * cos(s * 1.8));
+          vec2 warped = s + (r - s);
+          float m = length(warped + sin(5.0 * warped.y * 1.8 - 3.0 * bendT + float(i)) / 4.0);
+          float w = 1.0 - exp(-2.5 / exp(2.5 * m));
+          vec3 bandColor = i == 0 ? bendColor1 : (i == 1 ? bendColor2 : bendColor3);
+          bends += bandColor * w;
+          cover = max(cover, w);
+        }
+        bends = clamp(bends * 0.75, 0.0, 1.0);
+        float bendNoise = fract(sin(dot(gl_FragCoord.xy + vec2(bendTime), vec2(12.9898, 78.233))) * 43758.5453);
+        bends = clamp(bends + (bendNoise - 0.5) * 0.01, 0.0, 1.0);
+        c = mix(c, bends, bendOpacity * cover);
+
+        // 微量抖動消除色帶——量要極小,0.012 會整片髒顆粒感
         float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-        gl_FragColor = vec4(c + (n - 0.5) * 0.012, 1.0);
+        gl_FragColor = vec4(c + (n - 0.5) * 0.0015, 1.0);
       }`,
   })
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 16), mat)
@@ -60,6 +103,8 @@ export function createSky() {
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, k)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, k)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, k)
+    uniforms.bendTime.value = performance.now() * 0.001
+    uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.22, 0.34))
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
       // 第一幕近霧（far 55 藏住城市不早洩），離開書桌後（t>0.34）放晴讓城市遠景清楚

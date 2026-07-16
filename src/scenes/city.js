@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
 import { Text } from 'troika-three-text'
-import { glass, glassFacade, glassGridOverlay, litWindow, flat, box, island, palette, seededRandom } from '../flight/stage/materials.js'
+import { glass, glassFacade, glassGridOverlay, litWindow, flat, standard, emissive, galvanizedSteel, box, island, palette, seededRandom } from '../flight/stage/materials.js'
 
 /**
  * 場景 02：城市（Projects）——兩拍式（視覺參考 Marvel's Spider-Man PS5）：
@@ -35,6 +35,79 @@ function neonSign(name, hex) {
   return t
 }
 
+/** 看板彩蛋：少量共生體殘留與蛛網，只有貼近看板時才會發現。 */
+function addSpiderManEasterEgg(parent) {
+  // 共生體不是平面黑漆：濕潤、高光、由結節分出不規則細觸鬚，月光下會出現冷色輪廓。
+  const symbioteMat = standard(0x050609, {
+    roughness: 0.2,
+    metalness: 0.08,
+    envMapIntensity: 2.1,
+  })
+  const addTendril = (points, radius) => {
+    const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z]) => new THREE.Vector3(x, y, z)))
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 18, radius, 7, false), symbioteMat)
+    parent.add(mesh)
+  }
+  const addFluidSlick = () => {
+    // 有面積的薄液膜貼住背板，觸手由液膜邊緣長出；不是數條懸空線。
+    const shape = new THREE.Shape()
+    shape.moveTo(-3.24, 12.73)
+    shape.bezierCurveTo(-2.98, 12.78, -2.62, 12.73, -2.36, 12.66)
+    shape.bezierCurveTo(-2.5, 12.54, -2.7, 12.52, -2.78, 12.38)
+    shape.bezierCurveTo(-2.88, 12.2, -2.85, 11.96, -3.02, 11.78)
+    shape.bezierCurveTo(-3.16, 11.99, -3.08, 12.25, -3.19, 12.42)
+    shape.bezierCurveTo(-3.28, 12.54, -3.3, 12.64, -3.24, 12.73)
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: 0.032,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.018,
+      bevelThickness: 0.012,
+      curveSegments: 8,
+    })
+    const slick = new THREE.Mesh(geo, symbioteMat)
+    slick.position.z = 0.405 // 背板後表面 z=0.41，微幅包覆避免 z-fighting
+    parent.add(slick)
+  }
+  for (const [x, y, sx, sy, rz] of [
+    [-3.02, 12.69, 0.38, 0.055, -0.16], [-2.68, 12.72, 0.28, 0.045, 0.1], [-3.15, 12.55, 0.24, 0.05, -0.7],
+  ]) {
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 9), symbioteMat)
+    blob.scale.set(sx / 0.18, sy / 0.18, 0.1)
+    blob.position.set(x, y, 0.105)
+    blob.rotation.z = rz
+    parent.add(blob)
+  }
+  addTendril([[-3.12, 12.67, 0.1], [-3.2, 12.48, 0.095], [-3.12, 12.25, 0.09]], 0.026)
+  addTendril([[-2.88, 12.7, 0.1], [-2.58, 12.76, 0.095], [-2.34, 12.69, 0.09]], 0.02)
+  addTendril([[-2.78, 12.65, 0.1], [-2.62, 12.5, 0.095], [-2.58, 12.34, 0.09]], 0.014)
+  // 越過頂緣包到背板：從維修走道與背面也能看到共生體正在蔓延。
+  addTendril([[-3.02, 12.7, 0.1], [-3.08, 12.78, 0.28], [-3.02, 12.68, 0.42]], 0.03)
+  addTendril([[-2.74, 12.68, 0.11], [-2.35, 12.78, 0.28], [-1.92, 12.68, 0.42]], 0.022)
+  addFluidSlick()
+  addTendril([[-3.05, 12.34, 0.43], [-3.14, 12.02, 0.432], [-3.04, 11.55, 0.43]], 0.019)
+  addTendril([[-2.76, 12.42, 0.43], [-2.5, 12.16, 0.432], [-2.42, 11.84, 0.43]], 0.014)
+  addTendril([[-2.48, 12.61, 0.43], [-2.16, 12.7, 0.432], [-1.72, 12.54, 0.43]], 0.011)
+
+  // 右上蛛網使用細圓管而非永遠自亮的白線，才能隨冷色月光呈現若隱若現的銀灰高光。
+  const webMat = standard(0xaebdca, { roughness: 0.7, metalness: 0.05 })
+  const webTube = (points) => {
+    const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z = 0.1]) => new THREE.Vector3(x, y, z)))
+    parent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.008, 5, false), webMat))
+  }
+  const corner = [3.13, 12.72]
+  const ends = [[2.35, 12.72], [2.48, 12.35], [2.75, 12.08], [3.13, 11.98]]
+  ends.forEach((end) => webTube([corner, end]))
+  for (const k of [0.3, 0.55, 0.78]) {
+    const arc = ends.map(([x, y]) => [corner[0] + (x - corner[0]) * k, corner[1] + (y - corner[1]) * k])
+    webTube(arc)
+  }
+  // 部分絲線跨過頂框黏到背架，避免正面像貼紙、背面完全消失。
+  webTube([[3.13, 12.72, 0.1], [3.16, 12.79, 0.31], [3.04, 12.66, 0.54], [2.76, 12.38, 0.56]])
+  webTube([[2.72, 12.55, 0.1], [2.9, 12.77, 0.3], [2.68, 12.7, 0.54], [2.4, 12.5, 0.56]])
+  webTube([[3.04, 12.66, 0.54], [2.68, 12.42, 0.55], [2.42, 12.12, 0.56]])
+}
+
 export function buildCity(ctx = {}) {
   const projects = ctx.content?.projects || []
   const g = new THREE.Group()
@@ -44,7 +117,8 @@ export function buildCity(ctx = {}) {
   /* 地面街景（Alvis 選案：人行道＋馬路，不是蓋滿樓）：
    * 柏油鋪滿島面；hero 與看板樓之間那條窄巷就是「馬路」，兩側人行道，
    * 車道虛線沿 x 向。 */
-  box(B, 34, 0.06, 26, flat(0x14161c), 0, 0.03, 0) // 柏油
+  box(B, 34, 0.06, 26, flat(0x181b22), 0, 0.03, 0) // 街廓地面
+  box(B, 34, 0.025, 3.4, flat(0x101218), 0, 0.07, -1.7) // 兩排大樓中間的連續車道
   box(B, 34, 0.08, 1.2, flat(0x2b303c), 0, 0.05, -4.0) // 人行道（hero 側）
   box(B, 34, 0.08, 1.2, flat(0x2b303c), 0, 0.05, 0.55) // 人行道（看板樓側）
   for (let x = -15; x <= 15; x += 2.4) {
@@ -53,33 +127,61 @@ export function buildCity(ctx = {}) {
 
   // 月亮：掛在城市上空，冷色月光映照大樓（DirectionalLight）＋bloom 光暈
   {
-    const mc = document.createElement('canvas')
-    mc.width = 128
-    mc.height = 128
-    const mctx = mc.getContext('2d')
-    mctx.fillStyle = '#eae6da'
-    mctx.beginPath()
-    mctx.arc(64, 64, 63, 0, Math.PI * 2)
-    mctx.fill()
-    for (let i = 0; i < 9; i++) { // 月海斑塊，遠看有「真月亮」的質感
-      mctx.fillStyle = `rgba(176,172,160,${0.25 + Math.random() * 0.3})`
-      mctx.beginPath()
-      mctx.arc(20 + Math.random() * 88, 20 + Math.random() * 88, 5 + Math.random() * 13, 0, Math.PI * 2)
-      mctx.fill()
-    }
-    const moonTex = new THREE.CanvasTexture(mc)
+    // NASA LRO CGI Moon Kit：真實球面反照率＋LOLA 高度圖，不再程序化亂畫坑洞。
+    const loader = new THREE.TextureLoader()
+    const moonTex = loader.load('/textures/moon-color-nasa.jpg')
+    const moonBump = loader.load('/textures/moon-height-nasa.jpg')
     moonTex.colorSpace = THREE.SRGBColorSpace
     const moon = new THREE.Mesh(
-      new THREE.SphereGeometry(2.4, 24, 18),
-      new THREE.MeshBasicMaterial({ map: moonTex })
+      new THREE.SphereGeometry(2.4, 96, 64),
+      standard(0xbfc1c1, {
+        map: moonTex,
+        bumpMap: moonBump,
+        bumpScale: 0.055,
+        roughness: 1,
+        metalness: 0,
+        emissive: 0x737b84,
+        emissiveMap: moonTex,
+        emissiveIntensity: 0.08,
+      })
     )
     moon.position.set(-20, 28, -18)
+    moon.rotation.y = Math.PI * 0.52
+    moon.visible = false
     B.add(moon)
-    const moonlight = new THREE.DirectionalLight(0xcfe0f2, 0.6) // 月光灑在樓面
+    // 光暈用永遠朝向鏡頭的柔邊 sprite；不提高月面曝光，仍保留月海與坑洞細節。
+    const hc = document.createElement('canvas')
+    hc.width = hc.height = 128
+    const hctx = hc.getContext('2d')
+    const hg = hctx.createRadialGradient(64, 64, 42, 64, 64, 64)
+    hg.addColorStop(0, 'rgba(190,211,231,0.16)')
+    hg.addColorStop(0.55, 'rgba(132,164,196,0.07)')
+    hg.addColorStop(1, 'rgba(92,137,184,0)')
+    hctx.fillStyle = hg
+    hctx.fillRect(0, 0, 128, 128)
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: new THREE.CanvasTexture(hc),
+      color: 0xb5d3ee,
+      transparent: true,
+      opacity: 0.24,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }))
+    halo.scale.set(5.9, 5.9, 1)
+    halo.position.copy(moon.position)
+    halo.visible = false
+    B.add(halo)
+    g.userData.cityMoon = moon
+    g.userData.cityMoonHalo = halo
+    // Insomniac 式夜景不是把月亮本身炸亮，而是讓同一方向的冷色主光
+    // 擦過屋頂與立面，留下清楚輪廓；低強度半球光只救回暗部資訊。
+    const moonlight = new THREE.DirectionalLight(0xa8bfd5, 0.42)
     moonlight.position.copy(moon.position)
     moonlight.target.position.set(4, 5, -2)
     B.add(moonlight)
     B.add(moonlight.target)
+    const moonFill = new THREE.HemisphereLight(0x405b76, 0x090b10, 0.16)
+    B.add(moonFill)
   }
 
   // 共用窗燈材質/幾何：亮的是「一整格」，天花板燈上亮下暗透出玻璃（真實大樓夜景）
@@ -91,7 +193,7 @@ export function buildCity(ctx = {}) {
 
   // 小樓：鏡面帷幕牆。正/背面與側面各依「自己那面的寬度」配格距——每一面格線才對齊
   const roofMat = glass(palette.glassCool)
-  const tower = (x, z, w, d, h) => {
+  const tower = (x, z, w, d, h, litChance = 0.06) => {
     const cool = rnd() < 0.5
     const front = glassFacade(w, h, cool)
     const side = glassFacade(d, h, cool)
@@ -102,9 +204,21 @@ export function buildCity(ctx = {}) {
     const rows = Math.floor(h / PH)
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
-        if (rnd() > 0.06) continue
+        if (rnd() > litChance) continue
         const q = new THREE.Mesh(paneGeo, rnd() < 0.7 ? warmWin : coolWin)
         q.position.set(x - w / 2 + (i + 0.5) * PW, (j + 0.5) * PH, z + d / 2 + 0.02)
+        B.add(q)
+      }
+    }
+    // 鏡頭從城市東側(+x)靠近，側牆也必須有亮窗；先前只貼 +z 面，
+    // 所以最近的一排樓看起來反而全黑。
+    const sideCols = Math.floor(d / PW)
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < sideCols; i++) {
+        if (rnd() > litChance * 1.25) continue
+        const q = new THREE.Mesh(paneGeo, rnd() < 0.68 ? warmWin : coolWin)
+        q.position.set(x + w / 2 + 0.02, (j + 0.5) * PH, z - d / 2 + (i + 0.5) * PW)
+        q.rotation.y = Math.PI / 2
         B.add(q)
       }
     }
@@ -123,8 +237,8 @@ export function buildCity(ctx = {}) {
     const f = glassFacade(heroW, heroH, true)
     box(B, heroW, heroH, heroD, [f, f, roofMat, roofMat, f, f], 0, heroH / 2, heroZ)
   }
-  // 鏡面鋪滿整面牆（缺一角會露出底下材質造成上下色差）
-  const mirror = new Reflector(new THREE.PlaneGeometry(heroW * 0.99, heroH * 0.99), {
+  // 鏡面鋪滿整面牆（尺寸=樓體，格線 repeat 才會與側面的行列對齊）
+  const mirror = new Reflector(new THREE.PlaneGeometry(heroW, heroH), {
     textureWidth: 1024,
     textureHeight: 1024,
     color: 0x5b6675,
@@ -140,30 +254,63 @@ export function buildCity(ctx = {}) {
   B.add(mirror)
   // 窗櫺格 overlay：讓真實反射「一格一格」顯示，而不是一整面大鏡子（同樣鋪滿）
   const grid = new THREE.Mesh(
-    new THREE.PlaneGeometry(heroW * 0.99, heroH * 0.99),
-    glassGridOverlay(heroW * 0.99, heroH * 0.99)
+    new THREE.PlaneGeometry(heroW, heroH),
+    glassGridOverlay(heroW, heroH)
   )
   grid.position.set(0, heroH * 0.5, heroZ + heroD / 2 + 0.08)
   B.add(grid)
 
-  // 對街看板樓：窄巷（街寬 ~4.2）對面的一棟正常樓，看板掛樓面朝 -z（朝玻璃）。
-  // 樓加高、看板與三行字整體上移——反射視角（鏡頭在低處往上看）三行才全都露出。
-  tower(0, 2.4, 5.5, 4, 14)
-  box(B, 6.6, 5.2, 0.3, glass(palette.glassWarm), 0, 10.4, 0.3) // 看板板體
+  // 對街改成較矮的屋頂看板樓：鋼架、維修走道、護欄與支柱都留出輪廓，
+  // 看板不再像一塊貼在玻璃牆上的板子。面朝 -z，仍供 hero 玻璃反射。
+  const signRoofY = 7.2
+  tower(0, 2.4, 5.5, 4, signRoofY, 0.08)
+  // 戶外看板背架多為鍍鋅鋼：銀灰、偏霧面，不是黑色烤漆。
+  const frameMat = galvanizedSteel(0xa8adb1)
+  const backMat = galvanizedSteel(0x858b90, { roughness: 0.62, metalness: 0.58 })
+  const boardMat = emissive(0x172235, 0.28, { roughness: 0.34, metalness: 0.18 })
+  box(B, 6.6, 5.2, 0.22, backMat, 0, 10.15, 0.3) // 鍍鋅鋼背板
+  box(B, 6.28, 4.88, 0.04, boardMat, 0, 10.15, 0.16) // 微發光看板面
+  for (const x of [-2.45, 0, 2.45]) {
+    box(B, 0.12, 2.1, 0.12, frameMat, x, 8.05, 1.05) // 後方鋼柱
+    const brace = box(B, 0.08, 2.2, 0.08, frameMat, x, 8.2, 0.72)
+    brace.rotation.x = -0.34
+  }
+  box(B, 6.5, 0.1, 0.75, frameMat, 0, 7.55, 0.86) // 維修走道
+  // 背板後表面在 z=0.41；護欄至少退到 0.58，避免共面造成閃爍(z-fighting)。
+  for (const z of [0.58, 1.22]) {
+    box(B, 6.5, 0.06, 0.06, frameMat, 0, 8.18, z)
+    for (let x = -3.2; x <= 3.2; x += 0.8) box(B, 0.05, 0.65, 0.05, frameMat, x, 7.86, z)
+  }
+  addSpiderManEasterEgg(B)
   projects.forEach((p, i) => {
     const sign = neonSign(p.name, NEON[i % NEON.length])
-    sign.position.set(0, 11.9 - i * 1.5, 0.12)
+    sign.position.set(0, 11.65 - i * 1.5, 0.12)
     sign.userData.project = p
     B.add(sign)
   })
 
-  // 密集樓群：填滿整座島，只留 hero–看板之間的窄巷走廊
-  for (let i = 0; i < 44; i++) {
-    const x = (rnd() - 0.5) * 32
-    const z = -11 + rnd() * 16
-    if (Math.abs(x) < 3.8 && z > -9 && z < 5.5) continue // hero + 窄巷 + 看板樓走廊
-    tower(x, z, 1.2 + rnd() * 1.8, 1.2 + rnd() * 1.8, 3 + rnd() * (x > 5 ? 5 : 9))
+  // 密集樓群：車道沿 x 軸貫穿，樓只分布在道路南北兩側；另外避開 hero 與看板樓。
+  // 生成範圍擴到整座島，補掉原本右後方與邊角的大面積空洞。
+  for (let i = 0; i < 72; i++) {
+    const x = (rnd() - 0.5) * 31.5
+    const z = -11.5 + rnd() * 22.5
+    const w = 1.15 + rnd() * 1.75
+    const d = 1.15 + rnd() * 1.75
+    if (z - d / 2 < 0.1 && z + d / 2 > -3.5) continue // 馬路＋兩側人行道
+    if (Math.abs(x) < 3.2 && z > -8.2 && z < -3.9) continue // hero
+    if (Math.abs(x) < 3.6 && z > 0.1 && z < 4.8) continue // 看板樓
+    const nearCamera = x > 4
+    const h = 3.2 + rnd() * (nearCamera ? 7 : 10)
+    tower(x, z, w, d, h, nearCamera ? 0.13 : 0.07)
   }
 
   return g
+}
+
+/** 城市可提前 build 預載，但在書桌 shot 結束前整組保持不可見，避免月球／樓群穿幫。 */
+export function updateCity(group, t) {
+  group.visible = t >= 0.34
+  // 桌面仍占畫面時絕不顯示月球；接近城市 establishing shot 才出現。
+  if (group.userData.cityMoon) group.userData.cityMoon.visible = t >= 0.46
+  if (group.userData.cityMoonHalo) group.userData.cityMoonHalo.visible = t >= 0.46
 }
