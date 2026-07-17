@@ -116,13 +116,38 @@ export function buildCity(ctx = {}) {
         metalness: 0,
         emissive: 0x737b84,
         emissiveMap: moonTex,
-        emissiveIntensity: 0.16,
+        emissiveIntensity: 0.26,
       })
     )
     moon.position.set(-20, 28, -18)
     moon.rotation.y = Math.PI * 0.52
     moon.visible = false
     B.add(moon)
+    // 貼著月面輪廓的 Fresnel 邊緣光：只亮球體外緣，不洗白中央的月海與坑洞。
+    const moonRim = new THREE.Mesh(
+      new THREE.SphereGeometry(2.46, 64, 48),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        vertexShader: /* glsl */ `
+          varying float vRim;
+          void main() {
+            vec3 viewNormal = normalize(normalMatrix * normal);
+            vec3 viewDir = normalize(-(modelViewMatrix * vec4(position, 1.0)).xyz);
+            vRim = pow(1.0 - max(dot(viewNormal, viewDir), 0.0), 3.2);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying float vRim;
+          void main() {
+            gl_FragColor = vec4(vec3(0.50, 0.68, 0.86) * vRim, vRim * 0.32);
+          }
+        `,
+      })
+    )
+    moon.add(moonRim)
     // 光暈用永遠朝向鏡頭的柔邊 sprite；不提高月面曝光，仍保留月海與坑洞細節。
     const hc = document.createElement('canvas')
     hc.width = hc.height = 128
