@@ -72,8 +72,7 @@ export function buildFinalDesk() {
   for (let i = 0; i < 4; i++) box(notebook, 0.85 - i * 0.08, 0.012, 0.025, flat(0x6b777e), -0.1, 0.05, -0.28 + i * 0.17)
   addArtifact(notebook, 0.15, 1.05, 0xf0bd68)
 
-  const dawn = new THREE.DirectionalLight(0xffd2a8, 1.2); dawn.position.set(-8, 14, 7); dawn.target.position.set(0, 1, 0); A.add(dawn); A.add(dawn.target)
-  const fill = new THREE.HemisphereLight(0xb9d9f3, 0x4d3023, 0.52); A.add(fill)
+  // 最終幕沿用全域清晨藍灰，不再疊加額外暖色主光／補光；保留物件自身科技色 glow。
   g.userData.artifacts = artifacts
   g.userData.screenMat = screenMat
   return g

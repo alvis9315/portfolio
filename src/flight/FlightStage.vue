@@ -156,8 +156,8 @@ onMounted(() => {
     const t = props.progress.value
     manager.update(t, props.context)
     sky.update(t, scene.fog)
-    // 第二幕維持遊戲化、可讀的冷色深夜；離開玻璃停點後才快速進入破曉。
-    const dawn = THREE.MathUtils.smoothstep(t, 0.345, 0.43)
+    // 第二幕停穩時先灑入少量暖陽，再於前往第三幕的途中完成破曉。
+    const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.43)
     const morning = THREE.MathUtils.smoothstep(t, 0.43, 0.72)
     const hemi = scene.getObjectByName('journey-hemi')
     const sun = scene.getObjectByName('journey-sun')
@@ -173,7 +173,7 @@ onMounted(() => {
       sun.intensity = THREE.MathUtils.lerp(sun.intensity, 0.98, morning)
       sun.color.set(0xa9c1dc).lerp(dawnSunLight, dawn).lerp(morningSunLight, morning)
     }
-    if (stars) stars.material.opacity = 1 - THREE.MathUtils.smoothstep(t, 0.345, 0.45)
+    if (stars) stars.material.opacity = 1 - THREE.MathUtils.smoothstep(t, 0.31, 0.45)
     props.flight.getPose(t, camera.position, lookTarget)
     // 天空穹頂必須跟著鏡頭移動；固定在世界原點時，飛到後續場景會讓地平線
     // 彎到畫面角落，暖光與雲帶因此看起來像一顆過曝光球。

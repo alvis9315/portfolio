@@ -156,6 +156,14 @@ export function buildCity(ctx = {}) {
     B.add(moonlight.target)
     const moonFill = new THREE.HemisphereLight(0x5f84a8, 0x142038, 0.46)
     B.add(moonFill)
+
+    // 玻璃停點起才升起的低角度暖陽：先輕擦建築與看板，再銜接第三幕完整破曉。
+    const sunrise = new THREE.DirectionalLight(0xffb878, 0)
+    sunrise.position.set(-16, 9, 12)
+    sunrise.target.position.set(0, 7, -5)
+    B.add(sunrise)
+    B.add(sunrise.target)
+    g.userData.citySunrise = sunrise
   }
 
   // 共用窗燈材質/幾何：亮的是「一整格」，天花板燈上亮下暗透出玻璃（真實大樓夜景）
@@ -296,4 +304,7 @@ export function updateCity(group, t) {
   // 桌面仍占畫面時絕不顯示月球；接近城市 establishing shot 才出現。
   if (group.userData.cityMoon) group.userData.cityMoon.visible = t >= 0.2 && t <= 0.39
   if (group.userData.cityMoonHalo) group.userData.cityMoonHalo.visible = t >= 0.2 && t <= 0.39
+  if (group.userData.citySunrise) {
+    group.userData.citySunrise.intensity = THREE.MathUtils.smoothstep(t, 0.3, 0.37) * 0.48
+  }
 }
