@@ -149,12 +149,12 @@ export function buildCity(ctx = {}) {
     g.userData.cityMoonHalo = halo
     // Insomniac 式夜景不是把月亮本身炸亮，而是讓同一方向的冷色主光
     // 擦過屋頂與立面，留下清楚輪廓；低強度半球光只救回暗部資訊。
-    const moonlight = new THREE.DirectionalLight(0xb2cbe2, 0.68)
+    const moonlight = new THREE.DirectionalLight(0xb2cbe2, 0.82)
     moonlight.position.copy(moon.position)
     moonlight.target.position.set(4, 5, -2)
     B.add(moonlight)
     B.add(moonlight.target)
-    const moonFill = new THREE.HemisphereLight(0x5f84a8, 0x142038, 0.46)
+    const moonFill = new THREE.HemisphereLight(0x6f94b8, 0x1d2d45, 0.68)
     B.add(moonFill)
 
     // 玻璃停點起才升起的低角度暖陽：先輕擦建築與看板，再銜接第三幕完整破曉。

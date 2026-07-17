@@ -52,6 +52,7 @@ export function createSky() {
     bendColor2: { value: new THREE.Color(0x2969ae) },
     bendColor3: { value: new THREE.Color(0x4b6c8b) },
     dawnWarmth: { value: 0 },
+    gradientSpread: { value: 0 },
     finalSolid: { value: 0 },
     finalColor: { value: FINAL_SKY.clone() },
   }
@@ -79,15 +80,20 @@ export function createSky() {
       uniform float bendTime;
       uniform float bendOpacity;
       uniform float dawnWarmth;
+      uniform float gradientSpread;
       uniform float finalSolid;
       uniform vec3 finalColor;
       void main() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
-        // 兩段範圍刻意重疊，讓俯視鏡頭中的藍／灰紫／暖黃沒有水平分界線。
-        vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.65, 0.15, h));
+        // 深夜維持較亮、集中的地平線；破曉後才展開重疊寬漸層。
+        float bottomStart = mix(-0.45, -0.65, gradientSpread);
+        float bottomEnd = mix(-0.02, 0.15, gradientSpread);
+        vec3 c = mix(bottomColor, horizonColor, smoothstep(bottomStart, bottomEnd, h));
         // 第三幕採俯視鏡頭，天頂色必須在較低仰角就進場，否則整面背景只會讀成地平線暖色。
-        c = mix(c, topColor, smoothstep(-0.2, 0.5, h));
+        float topStart = mix(0.03, -0.2, gradientSpread);
+        float topEnd = mix(0.55, 0.5, gradientSpread);
+        c = mix(c, topColor, smoothstep(topStart, topEnd, h));
 
         // 不直接把整片 horizonColor 插成橘色；暖光只是一條沿地平線展開的薄帶。
         // 這可避免夜藍與橘色在過渡中混成大面積灰粉／濁褐色。
@@ -160,6 +166,7 @@ export function createSky() {
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     // 接近第三幕定點時暖陽已明顯退到低空，準備轉入藍天晨色。
     uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.36, 0.43))
+    uniforms.gradientSpread.value = THREE.MathUtils.smoothstep(t, 0.3, 0.43)
     uniforms.finalSolid.value = flatten
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
