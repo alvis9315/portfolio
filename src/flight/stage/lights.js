@@ -24,8 +24,9 @@ function addStars(scene, { count = 400, centerX = 60, centerZ = -40 } = {}) {
   geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3))
   const stars = new THREE.Points(
     geo,
-    new THREE.PointsMaterial({ color: palette.star, size: 0.35, sizeAttenuation: true })
+    new THREE.PointsMaterial({ color: palette.star, size: 0.35, sizeAttenuation: true, transparent: true })
   )
+  stars.name = 'journey-stars'
   scene.add(stars)
   return () => {
     scene.remove(stars)

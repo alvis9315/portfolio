@@ -7,6 +7,13 @@ export function buildDroneCity() {
   const B = island(g, 34, 28, 122, -1.5, -78)
   const rnd = seededRandom(43)
 
+  // 第三幕停點正值日出：以低角度桃金主光擦過樓體，天空仍保留清晨藍。
+  const sunrise = new THREE.DirectionalLight(0xffc28e, 0.72)
+  sunrise.position.set(-14, 12, 10)
+  sunrise.target.position.set(2, 3, -3)
+  B.add(sunrise)
+  B.add(sunrise.target)
+
   box(B, 33, 0.08, 27, flat(0x0d1620), 0, 0.04, 0)
   const road = flat(0x121d29)
   for (const x of [-10, -3.4, 3.4, 10]) box(B, 2.1, 0.05, 27, road, x, 0.09, 0)

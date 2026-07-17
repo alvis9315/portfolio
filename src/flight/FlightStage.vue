@@ -38,6 +38,9 @@ const lookTarget = new THREE.Vector3()
 const morningSkyLight = new THREE.Color(0xc9ddf2)
 const morningGroundLight = new THREE.Color(0x6d5848)
 const morningSunLight = new THREE.Color(0xfff0d4)
+const dawnSkyLight = new THREE.Color(0xd8c6bc)
+const dawnGroundLight = new THREE.Color(0x5f4640)
+const dawnSunLight = new THREE.Color(0xffc68f)
 
 onMounted(() => {
   renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true })
@@ -153,20 +156,28 @@ onMounted(() => {
     const t = props.progress.value
     manager.update(t, props.context)
     sky.update(t, scene.fog)
-    // 第二幕起配合天空由月夜逐步轉為晨光，模型本身也同步提亮。
-    const daylight = THREE.MathUtils.smoothstep(t, 0.31, 0.96)
+    // 第二幕維持遊戲化、可讀的冷色深夜；離開玻璃停點後才快速進入破曉。
+    const dawn = THREE.MathUtils.smoothstep(t, 0.345, 0.43)
+    const morning = THREE.MathUtils.smoothstep(t, 0.43, 0.72)
     const hemi = scene.getObjectByName('journey-hemi')
     const sun = scene.getObjectByName('journey-sun')
+    const stars = scene.getObjectByName('journey-stars')
     if (hemi) {
-      hemi.intensity = THREE.MathUtils.lerp(0.72, 0.98, daylight)
-      hemi.color.set(0x7fb5a8).lerp(morningSkyLight, daylight)
-      hemi.groundColor.set(0x1b2537).lerp(morningGroundLight, daylight)
+      hemi.intensity = THREE.MathUtils.lerp(0.88, 1.02, dawn)
+      hemi.intensity = THREE.MathUtils.lerp(hemi.intensity, 1.08, morning)
+      hemi.color.set(0x789fc3).lerp(dawnSkyLight, dawn).lerp(morningSkyLight, morning)
+      hemi.groundColor.set(0x1b2b43).lerp(dawnGroundLight, dawn).lerp(morningGroundLight, morning)
     }
     if (sun) {
-      sun.intensity = THREE.MathUtils.lerp(0.58, 0.88, daylight)
-      sun.color.set(0xffd39b).lerp(morningSunLight, daylight)
+      sun.intensity = THREE.MathUtils.lerp(0.5, 0.92, dawn)
+      sun.intensity = THREE.MathUtils.lerp(sun.intensity, 0.98, morning)
+      sun.color.set(0xa9c1dc).lerp(dawnSunLight, dawn).lerp(morningSunLight, morning)
     }
+    if (stars) stars.material.opacity = 1 - THREE.MathUtils.smoothstep(t, 0.345, 0.45)
     props.flight.getPose(t, camera.position, lookTarget)
+    // 天空穹頂必須跟著鏡頭移動；固定在世界原點時，飛到後續場景會讓地平線
+    // 彎到畫面角落，暖光與雲帶因此看起來像一顆過曝光球。
+    if (sky) sky.mesh.position.copy(camera.position)
     camera.lookAt(lookTarget)
     setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)
     // Reflector 的反射貼圖在 composer 之外先手動更新（見 city.js 的 updateReflection

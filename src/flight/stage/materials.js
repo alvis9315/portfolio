@@ -229,7 +229,7 @@ function makeFacadeMaps() {
   const S = 64 // 高解析 + 細格線（2px/64 ≈ 3%）才像真實帷幕
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) {
-      const v = 34 + Math.random() * 8 // 月光下稍微提亮，格間仍只保留細微差異
+      const v = 78 + Math.random() * 16 // 遊戲化夜景中間調：不同螢幕仍看得出樓體與玻璃格面
       cctx.fillStyle = `rgb(${(v * 0.55) | 0},${(v * 0.8) | 0},${(v * 1.15) | 0})`
       cctx.fillRect(x * S, y * S, S, S)
       rctx.fillStyle = 'rgb(34,34,34)' // 保留反射但擴散尖銳月光，不再形成圓形熱點
