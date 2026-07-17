@@ -7,30 +7,52 @@ export function buildDroneCity() {
   const B = island(g, 34, 28, 122, -1.5, -78)
   const rnd = seededRandom(43)
 
-  // 第三幕停點正值日出：以低角度桃金主光擦過樓體，天空仍保留清晨藍。
-  const sunrise = new THREE.DirectionalLight(0xffc28e, 0.72)
-  sunrise.position.set(-14, 12, 10)
-  sunrise.target.position.set(2, 3, -3)
-  B.add(sunrise)
-  B.add(sunrise.target)
+  // 第三幕已進入冷灰藍晨光：提高抽象節點的可讀性，不再沿用第二幕的夜城照明。
+  const daylight = new THREE.DirectionalLight(0xb8d8ef, 0.88)
+  daylight.position.set(-14, 14, 10)
+  daylight.target.position.set(2, 2, -3)
+  B.add(daylight)
+  B.add(daylight.target)
+  B.add(new THREE.HemisphereLight(0xd1e5f4, 0x26384a, 0.52))
 
   box(B, 33, 0.08, 27, flat(0x0d1620), 0, 0.04, 0)
-  const road = flat(0x121d29)
-  for (const x of [-10, -3.4, 3.4, 10]) box(B, 2.1, 0.05, 27, road, x, 0.09, 0)
-  for (const z of [-8.2, 0, 8.2]) box(B, 33, 0.05, 1.8, road, 0, 0.1, z)
+  // 不再畫成一般道路：窄背板匯流排把空間讀成系統拓樸，而不是第二座寫實城市。
+  const bus = flat(0x172535)
+  for (const x of [-10, -3.4, 3.4, 10]) box(B, 1.15, 0.05, 27, bus, x, 0.09, 0)
+  for (const z of [-8.2, 0, 8.2]) box(B, 33, 0.05, 1.0, bus, 0, 0.1, z)
 
-  const buildingMats = [standard(0x1a2b3b, { roughness: 0.36, metalness: 0.5 }), standard(0x25384a, { roughness: 0.42, metalness: 0.38 })]
-  for (let i = 0; i < 58; i++) {
+  const nodeMat = standard(0x40586e, { roughness: 0.5, metalness: 0.28 })
+  const serviceMat = standard(0x344b61, { roughness: 0.42, metalness: 0.36 })
+  const coreMat = standard(0x58758e, { emissive: 0x142b3e, emissiveIntensity: 0.12, roughness: 0.34, metalness: 0.42 })
+  const nodeCap = emissive(0x4d8ba6, 0.18)
+
+  // 多數是低矮服務／資料節點，刻意打破第二幕密集高樓的輪廓。
+  for (let i = 0; i < 34; i++) {
     const x = -15 + rnd() * 30
     const z = -12 + rnd() * 24
-    if ([-10, -3.4, 3.4, 10].some((r) => Math.abs(x - r) < 1.6)) continue
-    if ([-8.2, 0, 8.2].some((r) => Math.abs(z - r) < 1.5)) continue
-    const w = 1.2 + rnd() * 2.2
-    const d = 1.2 + rnd() * 2.2
-    const h = 1.8 + rnd() * 7
-    box(B, w, h, d, buildingMats[i % 2], x, h / 2, z)
-    if (rnd() > 0.62) box(B, w * 0.5, 0.05, d * 0.5, emissive(0x4d7896, 0.16), x, h + 0.04, z)
+    if ([-10, -3.4, 3.4, 10].some((r) => Math.abs(x - r) < 1.15)) continue
+    if ([-8.2, 0, 8.2].some((r) => Math.abs(z - r) < 1.05)) continue
+    const service = i % 5 === 0
+    const w = service ? 2.2 + rnd() * 1.6 : 1.7 + rnd() * 2.4
+    const d = service ? 2.0 + rnd() * 1.5 : 1.7 + rnd() * 2.3
+    const h = service ? 2.2 + rnd() * 1.8 : 0.45 + rnd() * 1.05
+    box(B, w, h, d, service ? serviceMat : nodeMat, x, h / 2, z)
+    box(B, w * 0.56, 0.055, d * 0.56, nodeCap, x, h + 0.035, z)
   }
+
+  // 少數核心高塔負責尺度與層級；亮頂代表關鍵服務，而非隨機窗戶。
+  const cores = [
+    [-9, 5.2, 6.2, 2.6, 2.6],
+    [-2.2, -5.5, 8.4, 2.8, 2.5],
+    [4.5, 3.4, 7.2, 3.0, 2.7],
+    [10.2, -6.2, 5.8, 2.7, 2.6],
+    [8.4, 9.2, 4.9, 2.5, 2.5],
+  ]
+  cores.forEach(([x, z, h, w, d]) => {
+    box(B, w + 0.7, 0.14, d + 0.7, serviceMat, x, 0.16, z)
+    box(B, w, h, d, coreMat, x, h / 2 + 0.2, z)
+    box(B, w * 0.58, 0.08, d * 0.58, emissive(0x72b5ce, 0.3), x, h + 0.25, z)
+  })
 
   const routeMat = emissive(0x20c8d8, 0.48, { transparent: true, opacity: 0.72 })
   const routes = [
