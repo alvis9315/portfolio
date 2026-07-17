@@ -17,6 +17,9 @@ import { site } from './content/site-content.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
 const ctl = useScrollFlight({ damping: 0.08 })
+// 六幕需要足夠的實體捲動距離讓觀眾停留觀看。640vh 扣掉一個 viewport 後，
+// 每幕平均不到一個螢幕高度，觸控板的一次慣性滑動很容易直接跨幕。
+const SCROLL_LENGTH_VH = 1100
 
 /* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
  * 城市場景的可見 t 區間 = flyThrough 段，卡片離開此區間自動淡出。 */
@@ -149,7 +152,7 @@ const scenes = [
 
 <template>
   <!-- 捲動空間：總長決定整段飛行的「膠卷長度」，越長節奏越慢 -->
-  <div style="height: 640vh"></div>
+  <div :style="{ height: `${SCROLL_LENGTH_VH}vh` }"></div>
 
   <!-- 3D 舞台 -->
   <FlightStage

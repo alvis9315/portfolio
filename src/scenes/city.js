@@ -206,27 +206,32 @@ export function buildCity(ctx = {}) {
     const side = glassFacade(d, h, cool)
     // BoxGeometry 材質順序:px,nx,py(頂),ny(底),pz,nz
     box(B, w, h, d, [side, side, roofMat, roofMat, front, front], x, h / 2, z)
-    // 亮燈的窗：貼齊帷幕格（格中心），亮的是一整格
+    // 亮燈的窗：四個立面都貼齊帷幕格（格中心）。鏡頭環繞城市時不會再出現
+    // 正面有燈、轉到背面便像整棟停電的情況。
     const cols = Math.floor(w / PW)
     const rows = Math.floor(h / PH)
+    const addLitPane = (px, py, pz, rotationY = 0, chance = litChance) => {
+      if (rnd() > chance) return
+      const q = new THREE.Mesh(paneGeo, rnd() < 0.68 ? warmWin : coolWin)
+      q.position.set(px, py, pz)
+      q.rotation.y = rotationY
+      B.add(q)
+    }
     for (let j = 0; j < rows; j++) {
+      const y = (j + 0.5) * PH
       for (let i = 0; i < cols; i++) {
-        if (rnd() > litChance) continue
-        const q = new THREE.Mesh(paneGeo, rnd() < 0.7 ? warmWin : coolWin)
-        q.position.set(x - w / 2 + (i + 0.5) * PW, (j + 0.5) * PH, z + d / 2 + 0.02)
-        B.add(q)
+        const px = x - w / 2 + (i + 0.5) * PW
+        addLitPane(px, y, z + d / 2 + 0.02)
+        addLitPane(px, y, z - d / 2 - 0.02, Math.PI)
       }
     }
-    // 鏡頭從城市東側(+x)靠近，側牆也必須有亮窗；先前只貼 +z 面，
-    // 所以最近的一排樓看起來反而全黑。
     const sideCols = Math.floor(d / PW)
     for (let j = 0; j < rows; j++) {
+      const y = (j + 0.5) * PH
       for (let i = 0; i < sideCols; i++) {
-        if (rnd() > litChance * 1.25) continue
-        const q = new THREE.Mesh(paneGeo, rnd() < 0.68 ? warmWin : coolWin)
-        q.position.set(x + w / 2 + 0.02, (j + 0.5) * PH, z - d / 2 + (i + 0.5) * PW)
-        q.rotation.y = Math.PI / 2
-        B.add(q)
+        const pz = z - d / 2 + (i + 0.5) * PW
+        addLitPane(x + w / 2 + 0.02, y, pz, Math.PI / 2, litChance * 1.15)
+        addLitPane(x - w / 2 - 0.02, y, pz, -Math.PI / 2, litChance * 1.15)
       }
     }
   }
@@ -317,7 +322,7 @@ export function buildCity(ctx = {}) {
     if (Math.abs(x) < 3.6 && z > 0.1 && z < 4.8) continue // 看板樓
     const nearCamera = x > 4
     const h = 3.2 + rnd() * (nearCamera ? 7 : 10)
-    tower(x, z, w, d, h, nearCamera ? 0.13 : 0.07)
+    tower(x, z, w, d, h, nearCamera ? 0.17 : 0.1)
   }
 
   return g

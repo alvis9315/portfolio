@@ -229,7 +229,7 @@ function makeFacadeMaps() {
   const S = 64 // 高解析 + 細格線（2px/64 ≈ 3%）才像真實帷幕
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) {
-      const v = 78 + Math.random() * 16 // 遊戲化夜景中間調：不同螢幕仍看得出樓體與玻璃格面
+      const v = 90 + Math.random() * 20 // 深夜但保留玻璃格面；避免一般螢幕把非焦點大樓壓成死黑
       cctx.fillStyle = `rgb(${(v * 0.55) | 0},${(v * 0.8) | 0},${(v * 1.15) | 0})`
       cctx.fillRect(x * S, y * S, S, S)
       rctx.fillStyle = 'rgb(34,34,34)' // 保留反射但擴散尖銳月光，不再形成圓形熱點
@@ -289,7 +289,7 @@ export const glassFacade = (w, h, cool = true) => {
     normalMap: clone(facadeMaps.normal),
     normalScale: new THREE.Vector2(0.72, 0.72),
     metalness: 0.76,
-    envMapIntensity: 2.5,
+    envMapIntensity: 2.8,
   })
 }
 
@@ -319,11 +319,11 @@ export const litWindow = (warm = true) => {
     map: ceilTexCache,
     alphaMap: ceilTexCache,
     transparent: true,
-    opacity: 0.58,
+    opacity: 0.72,
     color: warm ? 0x3d3025 : 0x283745,
     emissive: warm ? 0x806044 : 0x52697e,
     emissiveMap: ceilTexCache,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.58,
     roughness: 0.82,
     metalness: 0,
     alphaTest: 0.025,
