@@ -84,9 +84,10 @@ export function createSky() {
       void main() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
-        vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.45, -0.02, h));
+        // 兩段範圍刻意重疊，讓俯視鏡頭中的藍／灰紫／暖黃沒有水平分界線。
+        vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.55, 0.08, h));
         // 第三幕採俯視鏡頭，天頂色必須在較低仰角就進場，否則整面背景只會讀成地平線暖色。
-        c = mix(c, topColor, smoothstep(0.0, 0.25, h));
+        c = mix(c, topColor, smoothstep(-0.12, 0.42, h));
 
         // 不直接把整片 horizonColor 插成橘色；暖光只是一條沿地平線展開的薄帶。
         // 這可避免夜藍與橘色在過渡中混成大面積灰粉／濁褐色。
