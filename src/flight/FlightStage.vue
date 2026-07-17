@@ -164,13 +164,13 @@ onMounted(() => {
     const stars = scene.getObjectByName('journey-stars')
     if (hemi) {
       hemi.intensity = THREE.MathUtils.lerp(0.88, 1.02, dawn)
-      hemi.intensity = THREE.MathUtils.lerp(hemi.intensity, 1.08, morning)
+      hemi.intensity = THREE.MathUtils.lerp(hemi.intensity, 1.18, morning)
       hemi.color.set(0x789fc3).lerp(dawnSkyLight, dawn).lerp(morningSkyLight, morning)
       hemi.groundColor.set(0x1b2b43).lerp(dawnGroundLight, dawn).lerp(morningGroundLight, morning)
     }
     if (sun) {
       sun.intensity = THREE.MathUtils.lerp(0.5, 0.92, dawn)
-      sun.intensity = THREE.MathUtils.lerp(sun.intensity, 0.98, morning)
+      sun.intensity = THREE.MathUtils.lerp(sun.intensity, 1.05, morning)
       sun.color.set(0xa9c1dc).lerp(dawnSunLight, dawn).lerp(morningSunLight, morning)
     }
     if (stars) stars.material.opacity = 1 - THREE.MathUtils.smoothstep(t, 0.31, 0.45)
