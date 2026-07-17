@@ -11,8 +11,8 @@ import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
 import {
-  createDroneArrivalShot,
-  DRONE_ARRIVAL_END_POSE,
+  DRONE_ARRIVAL_CAMERA_PATH,
+  DRONE_ARRIVAL_LOOK_PATH,
   DRONE_ARRIVAL_RANGE,
 } from './scenes/droneArrival.js'
 import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
@@ -55,7 +55,7 @@ const SEAM_1 = { pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }        // 桌前
 const CITY_SKYLINE = { pos: [90, 19, -4], look: [57, 4, -32] }     // 拍 1：東北高空俯瞰，大樓林立的廣角遠景
 const CITY_GLASS = { pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] } // 拍 2：窄巷內貼玻璃帷幕（反射對街看板）
 const SEAM_2 = { pos: [88, 8, -50], look: [110, 12, -64] }         // 城市離場
-const DRONE_VIEW = DRONE_ARRIVAL_END_POSE
+const DRONE_VIEW = { pos: [137, 22, -60], look: [122, 4, -78] }
 const COMMAND_VIEW = { pos: [169, 10, -93], look: [157, 4, -111] }
 const COMMAND_SCREEN = { pos: [160, 6.2, -102], look: [158.8, 4.8, -120.1] }
 const COMMAND_DESK = { pos: [164, 4.8, -105], look: [157.8, 1.9, -110] }
@@ -96,8 +96,13 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 單次追飛：鏡頭由機尾後上方沿同一路徑前進，最後拉開看著它補進編隊。
-    shot: createDroneArrivalShot({ fromPos: SEAM_2.pos, fromLook: SEAM_2.look }),
+    // 同一台無人機從第二幕飛向第三幕：前半段鏡頭貼近機體，後半段向上拉開揭示編隊。
+    // 路徑與 droneCity 的 arrival drone 共用具名時間範圍，避免鏡頭／機體各自平滑而半途卡頓。
+    shot: flyThrough({
+      path: DRONE_ARRIVAL_CAMERA_PATH,
+      look: DRONE_ARRIVAL_LOOK_PATH,
+      tension: 0.28,
+    }),
     range: DRONE_ARRIVAL_RANGE,
     easing: easeInOutSine,
   },
