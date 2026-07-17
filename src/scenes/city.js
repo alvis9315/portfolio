@@ -116,7 +116,7 @@ export function buildCity(ctx = {}) {
         metalness: 0,
         emissive: 0x737b84,
         emissiveMap: moonTex,
-        emissiveIntensity: 0.08,
+        emissiveIntensity: 0.16,
       })
     )
     moon.position.set(-20, 28, -18)
