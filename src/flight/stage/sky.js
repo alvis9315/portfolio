@@ -26,6 +26,7 @@ const MORNING = {
   horizon: new THREE.Color(0x9eb2c3),
   bottom: new THREE.Color(0x435a72),
 }
+const FINAL_SKY = new THREE.Color(0x9bafc0)
 
 export function createSky() {
   const uniforms = {
@@ -105,11 +106,17 @@ export function createSky() {
 
   /** 每 frame 呼叫：t 驅動夜→曉插值，fog 顏色跟地平線色、fog 範圍隨旅程放晴。 */
   function update(t, fog) {
-    const dawn = THREE.MathUtils.smoothstep(t, 0.17, 0.5)
-    const morning = THREE.MathUtils.smoothstep(t, 0.5, 1.0)
+    // 第二幕絕大部分維持月夜；城市離場前才出現第一道暖光。
+    const dawn = THREE.MathUtils.smoothstep(t, 0.31, 0.6)
+    const morning = THREE.MathUtils.smoothstep(t, 0.6, 0.94)
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, dawn).lerp(MORNING.top, morning)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, dawn).lerp(MORNING.horizon, morning)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, dawn).lerp(MORNING.bottom, morning)
+    // 最終幕收斂成單色清晨，避免球形天空 bottom band 在左下角形成假轉場。
+    const flatten = THREE.MathUtils.smoothstep(t, 0.9, 0.98)
+    uniforms.topColor.value.lerp(FINAL_SKY, flatten)
+    uniforms.horizonColor.value.lerp(FINAL_SKY, flatten)
+    uniforms.bottomColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     if (fog) {

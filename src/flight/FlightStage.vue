@@ -154,7 +154,7 @@ onMounted(() => {
     manager.update(t, props.context)
     sky.update(t, scene.fog)
     // 第二幕起配合天空由月夜逐步轉為晨光，模型本身也同步提亮。
-    const daylight = THREE.MathUtils.smoothstep(t, 0.17, 1)
+    const daylight = THREE.MathUtils.smoothstep(t, 0.31, 0.96)
     const hemi = scene.getObjectByName('journey-hemi')
     const sun = scene.getObjectByName('journey-sun')
     if (hemi) {
