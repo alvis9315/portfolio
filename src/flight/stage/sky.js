@@ -34,12 +34,12 @@ const MIXED_DAWN = {
 }
 const MORNING = {
   // 暖陽結束後改為中性淺灰藍，不殘留桃黃／褐色染色。
-  top: new THREE.Color(0x829db7),
-  horizon: new THREE.Color(0x9aabba),
-  bottom: new THREE.Color(0x718594),
+  top: new THREE.Color(0x789bbd),
+  horizon: new THREE.Color(0x8fa8bc),
+  bottom: new THREE.Color(0x687f94),
 }
 // 保持在 Bloom threshold 以下，最終幕回歸乾淨科技藍灰，不形成白色曝光幕。
-const FINAL_SKY = new THREE.Color(0x8299ac)
+const FINAL_SKY = new THREE.Color(0x7894aa)
 
 export function createSky() {
   const uniforms = {
