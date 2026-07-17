@@ -347,16 +347,16 @@ export const glassGridOverlay = (w, h) => {
       ctx.fillRect(x * S, y * S, S, S)
     }
   }
-  // Reflector 不能吃 normalMap；用「深色縫＋極窄側壁反光」做視差錯覺，
-  // 遠看是內凹接縫而非一條亮色格線。
+  // Reflector 不能吃 normalMap；用「細深縫＋極窄側壁反光」做視差錯覺。
+  // 線寬壓到 2px，讓正面與側牆交界不會因窗框太粗而看起來錯位。
   for (let i = 0; i <= 8; i++) {
     const p = i * S
-    ctx.fillStyle = 'rgba(2,4,8,0.92)'
-    ctx.fillRect(p - 2, 0, 4, 512)
-    ctx.fillRect(0, p - 2, 512, 4)
-    ctx.fillStyle = 'rgba(105,126,150,0.18)'
-    ctx.fillRect(p + 2, 0, 1, 512)
-    ctx.fillRect(0, p + 2, 512, 1)
+    ctx.fillStyle = 'rgba(2,4,8,0.86)'
+    ctx.fillRect(p - 1, 0, 2, 512)
+    ctx.fillRect(0, p - 1, 512, 2)
+    ctx.fillStyle = 'rgba(105,126,150,0.12)'
+    ctx.fillRect(p + 1, 0, 1, 512)
+    ctx.fillRect(0, p + 1, 512, 1)
   }
   const t = new THREE.CanvasTexture(c)
   t.wrapS = t.wrapT = THREE.RepeatWrapping

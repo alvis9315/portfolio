@@ -72,11 +72,11 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 沿原方向逐步下降靠近；右側 waypoint 只負責避開穿模，不製造額外左右轉場。
+    // 沿原方向逐步下降，先從看板右側保留安全距離繞入窄巷，最後才靠近玻璃停穩。
     shot: flyThrough({
-      path: [CITY_SKYLINE.pos, [78, 16, -12], [67, 11, -24], [64.2, 8.4, -28.6], CITY_GLASS.pos],
-      look: [CITY_SKYLINE.look, [68, 7, -24], [62, 8, -29], [60.8, 7.8, -32.8], CITY_GLASS.look],
-      tension: 0.34,
+      path: [CITY_SKYLINE.pos, [78, 16, -12], [68, 11.5, -23], [65.2, 9.2, -27.6], [64.8, 8.2, -30.7], [62.6, 7.3, -31.8], CITY_GLASS.pos],
+      look: [CITY_SKYLINE.look, [69, 8, -23], [64, 8, -28], [61.8, 8, -30.5], [60.8, 7.8, -32.3], [60.3, 7.6, -33.6], CITY_GLASS.look],
+      tension: 0.28,
     }),
     range: [0.24, 0.32],
     easing: easeInOutSine,
