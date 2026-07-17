@@ -136,11 +136,11 @@ export function createSky() {
   function update(t, fog) {
     // 玻璃停點先收到暖光；離場後到第三幕前半維持完整暖陽，後半才混回晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
-    const morning = THREE.MathUtils.smoothstep(t, 0.54, 0.66)
+    const morning = THREE.MathUtils.smoothstep(t, 0.38, 0.43)
     const warmDawn = THREE.MathUtils.smoothstep(t, 0.32, 0.36)
       * (1 - THREE.MathUtils.smoothstep(t, 0.36, 0.41))
-    const mixedDawn = THREE.MathUtils.smoothstep(t, 0.36, 0.41)
-      * (1 - THREE.MathUtils.smoothstep(t, 0.54, 0.64))
+    const mixedDawn = THREE.MathUtils.smoothstep(t, 0.36, 0.39)
+      * (1 - THREE.MathUtils.smoothstep(t, 0.39, 0.43))
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, dawn).lerp(MORNING.top, morning)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, dawn).lerp(MORNING.horizon, morning)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, dawn).lerp(MORNING.bottom, morning)
@@ -158,7 +158,7 @@ export function createSky() {
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     // 接近第三幕定點時暖陽已明顯退到低空，準備轉入藍天晨色。
-    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.38, 0.48))
+    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.36, 0.43))
     uniforms.finalSolid.value = flatten
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
