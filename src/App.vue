@@ -85,14 +85,14 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 玻璃反射短暫停穩後離場。
+    // 玻璃反射在 0.32 抵達後保留較長 hold，讓觀眾能看清看板、反射與彩蛋再離場。
     shot: line({ fromPos: CITY_GLASS.pos, toPos: SEAM_2.pos, fromLook: CITY_GLASS.look, toLook: SEAM_2.look }),
-    range: [0.345, 0.37],
+    range: [0.37, 0.4],
     easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: SEAM_2.pos, toPos: DRONE_VIEW.pos, fromLook: SEAM_2.look, toLook: DRONE_VIEW.look }),
-    range: [0.37, 0.43], easing: easeInOutSine,
+    range: [0.4, 0.46], easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
@@ -142,8 +142,8 @@ const flight = composeShots([
 /* ── 場景 registry（lazy 建構）────────────────────────── */
 const scenes = [
   { id: 'workbench', range: [0.0, 0.19], build: () => buildWorkbench(), update: updateWorkbench },
-  { id: 'city', range: [0.15, 0.39], build: (ctx) => buildCity(ctx), update: updateCity },
-  { id: 'drone-city', range: [0.36, 0.59], build: () => buildDroneCity(), update: updateDroneCity },
+  { id: 'city', range: [0.15, 0.42], build: (ctx) => buildCity(ctx), update: updateCity },
+  { id: 'drone-city', range: [0.38, 0.59], build: () => buildDroneCity(), update: updateDroneCity },
   { id: 'command-room', range: [0.54, 0.73], build: () => buildCommandRoom(), update: updateCommandRoom },
   { id: 'creative-lab', range: [0.69, 0.88], build: () => buildCreativeLab(), update: updateCreativeLab },
   { id: 'final-desk', range: [0.85, 1.0], build: () => buildFinalDesk(), update: updateFinalDesk },

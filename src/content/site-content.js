@@ -25,7 +25,7 @@ export const site = {
     {
       id: 'projects',
       // 玻璃鏡頭在 t≈.32 停穩後才顯示，移動途中不遮住看板與城市。
-      range: [0.32, 0.35],
+      range: [0.32, 0.375],
       // 城市遠景左上方的天空留白：與第一幕錯開高度，也避開月球與建築輪廓。
       position: { left: '6vw', top: '22vh', textAlign: 'left', maxWidth: '460px' },
       eyebrow: '02 — Systems',
@@ -34,7 +34,7 @@ export const site = {
     },
     {
       id: 'drone-ops',
-      range: [0.4, 0.51],
+      range: [0.43, 0.51],
       position: { right: '6vw', top: '18vh', textAlign: 'right', maxWidth: '560px' },
       eyebrow: '03 — Perspective',
       title: '在複雜系統中找到清楚航線',
