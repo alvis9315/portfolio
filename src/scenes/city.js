@@ -137,7 +137,7 @@ export function buildCity(ctx = {}) {
       map: new THREE.CanvasTexture(hc),
       color: 0xb5d3ee,
       transparent: true,
-      opacity: 0.24,
+      opacity: 0.4,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     }))
