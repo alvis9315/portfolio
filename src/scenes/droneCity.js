@@ -173,7 +173,7 @@ export function updateDroneCity(group, t) {
       drone.visible = t >= revealStart
 
       if (t < revealEnd) {
-        // 第二幕離場尾端：先從建築下方鑽上來，抵達追隨鏡頭正前方才交棒給正式飛行。
+        // 第二幕大樓幾乎離開畫面後：從上方俯衝進場，再接上單向追飛路徑。
         sampleKeyedReveal(
           drone.userData.revealKeys,
           t,
