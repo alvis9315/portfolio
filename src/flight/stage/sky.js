@@ -29,7 +29,7 @@ const WARM_DAWN = {
 const MIXED_DAWN = {
   // 第三幕收尾：藍色天頂已回來，低空仍保留日出暖黃，作為暖晨與晨藍的橋段。
   top: new THREE.Color(0x668fb8),
-  horizon: new THREE.Color(0xb08b70),
+  horizon: new THREE.Color(0x9f897a),
   bottom: new THREE.Color(0x625c68),
 }
 const MORNING = {
@@ -85,11 +85,12 @@ export function createSky() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
         vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.45, -0.02, h));
-        c = mix(c, topColor, smoothstep(0.03, 0.55, h));
+        // 第三幕採俯視鏡頭，天頂色必須在較低仰角就進場，否則整面背景只會讀成地平線暖色。
+        c = mix(c, topColor, smoothstep(0.0, 0.25, h));
 
         // 不直接把整片 horizonColor 插成橘色；暖光只是一條沿地平線展開的薄帶。
         // 這可避免夜藍與橘色在過渡中混成大面積灰粉／濁褐色。
-        float warmBand = 1.0 - smoothstep(0.015, 0.24, abs(h));
+        float warmBand = 1.0 - smoothstep(0.015, 0.18, abs(h));
         // 天空本身不應跨過全域 Bloom threshold；暖色留給城市日出光映在材質上。
         c = mix(c, vec3(0.58, 0.31, 0.14), warmBand * dawnWarmth * 0.5);
 
@@ -156,7 +157,8 @@ export function createSky() {
     uniforms.bottomColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
-    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.54, 0.64))
+    // 接近第三幕定點時暖陽已明顯退到低空，準備轉入藍天晨色。
+    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.38, 0.48))
     uniforms.finalSolid.value = flatten
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
