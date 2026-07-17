@@ -28,9 +28,10 @@ function makeDashboardMaterial() {
 export function buildCommandRoom() {
   const g = new THREE.Group()
   const B = island(g, 30, 23, 157, -1.5, -111)
-  box(B, 29, 0.12, 22, flat(0x10151d), 0, 0.06, 0)
-  box(B, 29, 8, 0.3, standard(0x151d27, { roughness: 0.82 }), 0, 4, -9.5)
-  box(B, 0.25, 8, 22, standard(0x151d27, { roughness: 0.82 }), -13.8, 4, 0)
+  const roomWall = standard(0x35495c, { roughness: 0.82 })
+  box(B, 29, 0.12, 22, flat(0x263746), 0, 0.06, 0)
+  box(B, 29, 8, 0.3, roomWall, 0, 4, -9.5)
+  box(B, 0.25, 8, 22, roomWall, -13.8, 4, 0)
 
   const screenMat = makeDashboardMaterial()
   box(B, 13.4, 6.3, 0.18, focus(0x252e37), 1.8, 4.8, -9.25)

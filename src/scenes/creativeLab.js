@@ -10,7 +10,7 @@ const tube = (parent, points, radius, mat) => {
 export function buildCreativeLab() {
   const g = new THREE.Group()
   const B = island(g, 34, 24, 194, -1.5, -144)
-  box(B, 33, 0.1, 23, flat(0x13131b), 0, 0.05, 0)
+  box(B, 33, 0.1, 23, flat(0x2b3744), 0, 0.05, 0)
 
   // 左側：文件 → embedding → retrieval → RAG answer。
   const paperMat = standard(0xd6d9d8, { roughness: 0.82, metalness: 0 })
@@ -47,7 +47,7 @@ export function buildCreativeLab() {
   box(B, 0.12, 9.5, 12, standard(0x21445a, { transparent: true, opacity: 0.34, roughness: 0.18, metalness: 0.45 }), 0, 4.8, 0)
 
   // 右側 FigureShot 攝影棚。
-  const cyclorama = standard(0x282932, { roughness: 0.92, metalness: 0 })
+  const cyclorama = standard(0x465461, { roughness: 0.92, metalness: 0 })
   box(B, 13.5, 0.18, 10, cyclorama, 8.8, 0.1, 0)
   box(B, 13.5, 7.5, 0.16, cyclorama, 8.8, 3.75, -5)
   const venomMat = standard(0x05070a, { roughness: 0.16, metalness: 0.12, envMapIntensity: 2.2 })
