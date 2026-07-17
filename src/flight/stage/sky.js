@@ -102,13 +102,13 @@ export function createSky() {
         c = mix(c, vec3(0.58, 0.31, 0.14), warmBand * dawnWarmth * 0.5);
 
         // KnowledgeColorBends 的天空整合版：一個 renderer、一個天空 pass。
-        // rotation=100°, speed=.25, scale=1, frequency=1.8, warp=1, bandWidth=2.5。
+        // rotation=100°, speed=.32, scale=1, frequency=1.8, warp=1, bandWidth=2.5。
         vec2 p = vUv * 2.0 - 1.0;
         p = vec2(p.x * -0.173648 - p.y * 0.984808,
                  p.x *  0.984808 + p.y * -0.173648);
         vec2 q = vec2(p.x * 1.777778, p.y);
         q /= 0.5 + 0.2 * dot(q, q);
-        float bendT = bendTime * 0.25;
+        float bendT = bendTime * 0.32;
         q += 0.2 * cos(bendT) - 7.56;
 
         vec3 bends = vec3(0.0);
