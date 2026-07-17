@@ -33,10 +33,10 @@ const MIXED_DAWN = {
   bottom: new THREE.Color(0x625c68),
 }
 const MORNING = {
-  // 第四至六幕回到清透藍灰，承接室內場景而不突然變成正午純白。
-  top: new THREE.Color(0x78a1c5),
-  horizon: new THREE.Color(0x8fa7ba),
-  bottom: new THREE.Color(0x71899d),
+  // 暖陽結束後改為中性淺灰藍，不殘留桃黃／褐色染色。
+  top: new THREE.Color(0x829db7),
+  horizon: new THREE.Color(0x9aabba),
+  bottom: new THREE.Color(0x718594),
 }
 // 保持在 Bloom threshold 以下，最終幕回歸乾淨科技藍灰，不形成白色曝光幕。
 const FINAL_SKY = new THREE.Color(0x8299ac)
@@ -85,9 +85,9 @@ export function createSky() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
         // 兩段範圍刻意重疊，讓俯視鏡頭中的藍／灰紫／暖黃沒有水平分界線。
-        vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.55, 0.08, h));
+        vec3 c = mix(bottomColor, horizonColor, smoothstep(-0.65, 0.15, h));
         // 第三幕採俯視鏡頭，天頂色必須在較低仰角就進場，否則整面背景只會讀成地平線暖色。
-        c = mix(c, topColor, smoothstep(-0.12, 0.42, h));
+        c = mix(c, topColor, smoothstep(-0.2, 0.5, h));
 
         // 不直接把整片 horizonColor 插成橘色；暖光只是一條沿地平線展開的薄帶。
         // 這可避免夜藍與橘色在過渡中混成大面積灰粉／濁褐色。
