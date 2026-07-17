@@ -41,13 +41,11 @@ function jumpToSection(section) {
 }
 
 /* ── 2 + 3. Shot 層 + 編排層 ───────────────────────────────
- * 城市改為三拍：天際線 establishing → 看板背面彩蛋 → 玻璃反射特寫。
- * 每拍之間都保留可讀距離與平滑側移，不再由遠景瞬間直衝玻璃。 */
+ * 城市維持原本「天際線 → 玻璃反射」方向，只延長靠近路徑並從看板右側自然掠過；
+ * 彩蛋保留在場景中，但不為它額外轉向或安排獨立特寫。 */
 const SEAM_1 = { pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }        // 桌前
 const CITY_SKYLINE = { pos: [90, 19, -4], look: [57, 4, -32] }     // 拍 1：東北高空俯瞰，大樓林立的廣角遠景
-const BILLBOARD_BACK_WIDE = { pos: [55.5, 11, -23.5], look: [59.7, 8.5, -29.5] }
-const BILLBOARD_BACK_CLOSE = { pos: [63.8, 9.6, -24.8], look: [60, 8.45, -29.45] }
-const CITY_GLASS = { pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] } // 拍 3：窄巷內貼玻璃帷幕（反射對街看板）
+const CITY_GLASS = { pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] } // 拍 2：窄巷內貼玻璃帷幕（反射對街看板）
 const SEAM_2 = { pos: [88, 8, -50], look: [110, 12, -64] }         // 城市離場
 const DRONE_VIEW = { pos: [137, 22, -60], look: [122, 4, -78] }
 const COMMAND_VIEW = { pos: [169, 10, -93], look: [157, 4, -111] }
@@ -74,42 +72,24 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 從城市遠景逐步下降到看板後方，先建立鋼架與屋頂的空間關係。
+    // 沿原方向逐步下降靠近；右側 waypoint 只負責避開穿模，不製造額外左右轉場。
     shot: flyThrough({
-      path: [CITY_SKYLINE.pos, [78, 16, -10], [66, 13, -18], BILLBOARD_BACK_WIDE.pos],
-      look: [CITY_SKYLINE.look, [65, 7, -25], [61, 8, -28], BILLBOARD_BACK_WIDE.look],
+      path: [CITY_SKYLINE.pos, [78, 16, -12], [67, 11, -24], [64.2, 8.4, -28.6], CITY_GLASS.pos],
+      look: [CITY_SKYLINE.look, [68, 7, -24], [62, 8, -29], [60.8, 7.8, -32.8], CITY_GLASS.look],
+      tension: 0.34,
     }),
-    range: [0.24, 0.27],
+    range: [0.24, 0.32],
     easing: easeInOutSine,
-  },
-  {
-    // 沿背板橫移，讓左上共生體與右上蜘蛛網各自進入畫面，而不是一閃而過。
-    shot: line({
-      fromPos: BILLBOARD_BACK_WIDE.pos, toPos: BILLBOARD_BACK_CLOSE.pos,
-      fromLook: BILLBOARD_BACK_WIDE.look, toLook: BILLBOARD_BACK_CLOSE.look,
-    }),
-    range: [0.275, 0.3],
-    easing: easeInOutSine,
-  },
-  {
-    // 從看板右側繞入窄巷，再靠近玻璃反射；路徑避開直接穿過背板。
-    shot: flyThrough({
-      path: [BILLBOARD_BACK_CLOSE.pos, [64.6, 8.8, -28.5], [63.8, 7.6, -31], CITY_GLASS.pos],
-      look: [BILLBOARD_BACK_CLOSE.look, [61.5, 8.3, -30], [60.5, 7.8, -33], CITY_GLASS.look],
-      tension: 0.35,
-    }),
-    range: [0.305, 0.33],
-    easing: easeInOutCubic,
   },
   {
     // 玻璃反射短暫停穩後離場。
     shot: line({ fromPos: CITY_GLASS.pos, toPos: SEAM_2.pos, fromLook: CITY_GLASS.look, toLook: SEAM_2.look }),
-    range: [0.34, 0.365],
+    range: [0.345, 0.37],
     easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: SEAM_2.pos, toPos: DRONE_VIEW.pos, fromLook: SEAM_2.look, toLook: DRONE_VIEW.look }),
-    range: [0.365, 0.43], easing: easeInOutSine,
+    range: [0.37, 0.43], easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
@@ -160,7 +140,7 @@ const flight = composeShots([
 const scenes = [
   { id: 'workbench', range: [0.0, 0.19], build: () => buildWorkbench(), update: updateWorkbench },
   { id: 'city', range: [0.15, 0.39], build: (ctx) => buildCity(ctx), update: updateCity },
-  { id: 'drone-city', range: [0.355, 0.59], build: () => buildDroneCity(), update: updateDroneCity },
+  { id: 'drone-city', range: [0.36, 0.59], build: () => buildDroneCity(), update: updateDroneCity },
   { id: 'command-room', range: [0.54, 0.73], build: () => buildCommandRoom(), update: updateCommandRoom },
   { id: 'creative-lab', range: [0.69, 0.88], build: () => buildCreativeLab(), update: updateCreativeLab },
   { id: 'final-desk', range: [0.85, 1.0], build: () => buildFinalDesk(), update: updateFinalDesk },

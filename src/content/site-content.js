@@ -24,7 +24,8 @@ export const site = {
     },
     {
       id: 'projects',
-      range: [0.2, 0.35],
+      // 玻璃鏡頭在 t≈.32 停穩後才顯示，移動途中不遮住看板與城市。
+      range: [0.32, 0.35],
       // 城市遠景左上方的天空留白：與第一幕錯開高度，也避開月球與建築輪廓。
       position: { left: '6vw', top: '22vh', textAlign: 'left', maxWidth: '460px' },
       eyebrow: '02 — Systems',
