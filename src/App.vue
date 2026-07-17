@@ -72,11 +72,11 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 沿原方向逐步下降，先從看板右側保留安全距離繞入窄巷，最後才靠近玻璃停穩。
+    // 維持高位掠過看板右側，先讓頂部彩蛋留在畫面內；接近窄巷後才平順下降到玻璃。
     shot: flyThrough({
-      path: [CITY_SKYLINE.pos, [78, 16, -12], [68, 11.5, -23], [65.2, 9.2, -27.6], [64.8, 8.2, -30.7], [62.6, 7.3, -31.8], CITY_GLASS.pos],
-      look: [CITY_SKYLINE.look, [69, 8, -23], [64, 8, -28], [61.8, 8, -30.5], [60.8, 7.8, -32.3], [60.3, 7.6, -33.6], CITY_GLASS.look],
-      tension: 0.28,
+      path: [CITY_SKYLINE.pos, [78, 17, -12], [68, 14, -21], [64.8, 11.8, -26], [64, 9.6, -29.5], [62.5, 7.8, -31.6], CITY_GLASS.pos],
+      look: [CITY_SKYLINE.look, [68, 10.5, -23], [62, 11, -28], [60.5, 10.8, -29.5], [60.3, 9.2, -31.5], [60.2, 8, -33.4], CITY_GLASS.look],
+      tension: 0.32,
     }),
     range: [0.24, 0.32],
     easing: easeInOutSine,
