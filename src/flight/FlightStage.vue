@@ -156,9 +156,9 @@ onMounted(() => {
     const t = props.progress.value
     manager.update(t, props.context)
     sky.update(t, scene.fog)
-    // 第二幕停穩時先灑入少量暖陽，再於前往第三幕的途中完成破曉。
-    const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.43)
-    const morning = THREE.MathUtils.smoothstep(t, 0.43, 0.72)
+    // 第二幕離場後完整保留一段桃金暖陽；第三幕後半才混回現有晨藍。
+    const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
+    const morning = THREE.MathUtils.smoothstep(t, 0.47, 0.62)
     const hemi = scene.getObjectByName('journey-hemi')
     const sun = scene.getObjectByName('journey-sun')
     const stars = scene.getObjectByName('journey-stars')

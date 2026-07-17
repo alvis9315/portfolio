@@ -20,6 +20,12 @@ const DAWN = {
   horizon: new THREE.Color(0x819bb2),
   bottom: new THREE.Color(0x415b76),
 }
+const WARM_DAWN = {
+  // 第二幕離場到第三幕前半：完整桃金清晨，之後再銜接既有晨藍。
+  top: new THREE.Color(0x987b76),
+  horizon: new THREE.Color(0xb68d6d),
+  bottom: new THREE.Color(0x745047),
+}
 const MORNING = {
   // 第四至六幕回到清透藍灰，承接室內場景而不突然變成正午純白。
   top: new THREE.Color(0x78a1c5),
@@ -40,6 +46,8 @@ export function createSky() {
     bendColor2: { value: new THREE.Color(0x2969ae) },
     bendColor3: { value: new THREE.Color(0x4b6c8b) },
     dawnWarmth: { value: 0 },
+    finalSolid: { value: 0 },
+    finalColor: { value: FINAL_SKY.clone() },
   }
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -65,6 +73,8 @@ export function createSky() {
       uniform float bendTime;
       uniform float bendOpacity;
       uniform float dawnWarmth;
+      uniform float finalSolid;
+      uniform vec3 finalColor;
       void main() {
         float h = normalize(vPos).y;
         // smoothstep 雙段混合：地平線平滑無接縫（pow 版在 h=0 會出現一條線）
@@ -107,7 +117,9 @@ export function createSky() {
 
         // 微量抖動消除色帶——量要極小,0.012 會整片髒顆粒感
         float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-        gl_FragColor = vec4(c + (n - 0.5) * 0.0015, 1.0);
+        // 第六幕連天空抖動、暖帶與舊漸層都收掉，輸出真正純色。
+        c = mix(c + (n - 0.5) * 0.0015, finalColor, finalSolid);
+        gl_FragColor = vec4(c, 1.0);
       }`,
   })
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(300, 24, 16), mat)
@@ -115,20 +127,26 @@ export function createSky() {
 
   /** 每 frame 呼叫：t 驅動夜→曉插值，fog 顏色跟地平線色、fog 範圍隨旅程放晴。 */
   function update(t, fog) {
-    // 第二幕玻璃停點開始收到少量暖陽；第三幕停點(.43)抵達晨藍／暖光交界。
-    const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.43)
-    const morning = THREE.MathUtils.smoothstep(t, 0.43, 0.72)
+    // 玻璃停點先收到暖光；離場後到第三幕前半維持完整暖陽，後半才混回晨藍。
+    const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
+    const morning = THREE.MathUtils.smoothstep(t, 0.47, 0.62)
+    const warmDawn = THREE.MathUtils.smoothstep(t, 0.32, 0.36)
+      * (1 - THREE.MathUtils.smoothstep(t, 0.47, 0.56))
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, dawn).lerp(MORNING.top, morning)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, dawn).lerp(MORNING.horizon, morning)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, dawn).lerp(MORNING.bottom, morning)
+    uniforms.topColor.value.lerp(WARM_DAWN.top, warmDawn)
+    uniforms.horizonColor.value.lerp(WARM_DAWN.horizon, warmDawn)
+    uniforms.bottomColor.value.lerp(WARM_DAWN.bottom, warmDawn)
     // 最終幕收斂成單色清晨，避免球形天空 bottom band 在左下角形成假轉場。
-    const flatten = THREE.MathUtils.smoothstep(t, 0.9, 0.98)
+    const flatten = THREE.MathUtils.smoothstep(t, 0.82, 0.85)
     uniforms.topColor.value.lerp(FINAL_SKY, flatten)
     uniforms.horizonColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bottomColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
-    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.48, 0.72) * 0.62)
+    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.47, 0.58))
+    uniforms.finalSolid.value = flatten
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)
       // 第一幕近霧藏住城市；無人機幕開始後快速放晴，不讓樓群罩上一層灰霧。
