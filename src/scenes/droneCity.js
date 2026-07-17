@@ -93,7 +93,7 @@ export function buildDroneCity() {
 }
 
 export function updateDroneCity(group, t) {
-  group.visible = t >= 0.35 && t <= 0.59
+  group.visible = t >= 0.365 && t <= 0.59
   const time = performance.now() * 0.001
   for (const drone of group.userData.drones || []) {
     drone.position.y = drone.userData.base.y + Math.sin(time * 1.35 + drone.userData.phase) * 0.22
