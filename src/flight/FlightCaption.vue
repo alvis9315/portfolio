@@ -22,6 +22,8 @@ const opacity = computed(() => {
   if (t < a || t > b) return 0
   // 首幕在頁面載入時直接完整顯示；只保留離開區間時的淡出。
   if (a === 0 && t <= b - m) return 1
+  // 末幕只淡入不淡出：捲到真正頁底時收束文案必須保持顯示。
+  if (b === 1 && t >= a + m) return 1
   if (t < a + m) return (t - a) / m
   if (t > b - m) return (b - t) / m
   return 1

@@ -56,8 +56,9 @@ const COMMAND_DESK = { pos: [164, 4.8, -105], look: [157.8, 1.9, -110] }
 const LAB_DATA = { pos: [185, 7.2, -134], look: [182, 4.2, -148] }
 const LAB_STUDIO = { pos: [205, 6.4, -134], look: [202.6, 3.2, -145.5] }
 const FINAL_DETAIL = { pos: [229.5, 4.1, -172.5], look: [230.3, 2.25, -178] }
-const FINAL_SCREEN = { pos: [232.3, 4.6, -173.2], look: [232, 3.1, -178.8] }
-const FINAL_WIDE = { pos: [242, 10.5, -164], look: [232, 2.4, -178] }
+const FINAL_SCREEN = { pos: [232, 4.6, -173.2], look: [232, 3.1, -178.8] }
+// 收尾回到桌面中軸正視；先前 x=242 的右側斜視會讓整張桌子與螢幕看起來歪斜。
+const FINAL_WIDE = { pos: [232, 9.5, -164], look: [232, 2.5, -178] }
 
 const flight = composeShots([
   {

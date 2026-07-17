@@ -58,7 +58,8 @@ export const site = {
     },
     {
       id: 'contact',
-      range: [0.9, 1.0],
+      // 第六幕進場與桌面巡覽時先保持乾淨，接近最底部才顯示收束文案。
+      range: [0.965, 1.0],
       position: { left: '50%', top: '10vh', transform: 'translateX(-50%)', textAlign: 'center', maxWidth: '760px' },
       eyebrow: '06 — What Comes Next',
       title: "I build systems, lead delivery, and explore what's next with AI.",
