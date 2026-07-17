@@ -92,7 +92,8 @@ const flight = composeShots([
   },
   {
     shot: line({ fromPos: SEAM_2.pos, toPos: DRONE_VIEW.pos, fromLook: SEAM_2.look, toLook: DRONE_VIEW.look }),
-    range: [0.4, 0.46], easing: easeInOutSine,
+    // 城市離場到無人機全景放慢，避免第二幕 hold 結束後立刻掠過下一段路徑。
+    range: [0.4, 0.48], easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
