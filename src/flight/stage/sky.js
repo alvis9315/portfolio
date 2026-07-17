@@ -26,6 +26,12 @@ const WARM_DAWN = {
   horizon: new THREE.Color(0xb68d6d),
   bottom: new THREE.Color(0x745047),
 }
+const MIXED_DAWN = {
+  // 第三幕收尾：藍色天頂已回來，低空仍保留日出暖黃，作為暖晨與晨藍的橋段。
+  top: new THREE.Color(0x668fb8),
+  horizon: new THREE.Color(0xb08b70),
+  bottom: new THREE.Color(0x625c68),
+}
 const MORNING = {
   // 第四至六幕回到清透藍灰，承接室內場景而不突然變成正午純白。
   top: new THREE.Color(0x78a1c5),
@@ -129,15 +135,20 @@ export function createSky() {
   function update(t, fog) {
     // 玻璃停點先收到暖光；離場後到第三幕前半維持完整暖陽，後半才混回晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
-    const morning = THREE.MathUtils.smoothstep(t, 0.47, 0.62)
+    const morning = THREE.MathUtils.smoothstep(t, 0.54, 0.66)
     const warmDawn = THREE.MathUtils.smoothstep(t, 0.32, 0.36)
-      * (1 - THREE.MathUtils.smoothstep(t, 0.47, 0.56))
+      * (1 - THREE.MathUtils.smoothstep(t, 0.45, 0.5))
+    const mixedDawn = THREE.MathUtils.smoothstep(t, 0.45, 0.5)
+      * (1 - THREE.MathUtils.smoothstep(t, 0.54, 0.64))
     uniforms.topColor.value.copy(NIGHT.top).lerp(DAWN.top, dawn).lerp(MORNING.top, morning)
     uniforms.horizonColor.value.copy(NIGHT.horizon).lerp(DAWN.horizon, dawn).lerp(MORNING.horizon, morning)
     uniforms.bottomColor.value.copy(NIGHT.bottom).lerp(DAWN.bottom, dawn).lerp(MORNING.bottom, morning)
     uniforms.topColor.value.lerp(WARM_DAWN.top, warmDawn)
     uniforms.horizonColor.value.lerp(WARM_DAWN.horizon, warmDawn)
     uniforms.bottomColor.value.lerp(WARM_DAWN.bottom, warmDawn)
+    uniforms.topColor.value.lerp(MIXED_DAWN.top, mixedDawn)
+    uniforms.horizonColor.value.lerp(MIXED_DAWN.horizon, mixedDawn)
+    uniforms.bottomColor.value.lerp(MIXED_DAWN.bottom, mixedDawn)
     // 最終幕收斂成單色清晨，避免球形天空 bottom band 在左下角形成假轉場。
     const flatten = THREE.MathUtils.smoothstep(t, 0.82, 0.85)
     uniforms.topColor.value.lerp(FINAL_SKY, flatten)
@@ -145,7 +156,7 @@ export function createSky() {
     uniforms.bottomColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bendTime.value = performance.now() * 0.001
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
-    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.47, 0.58))
+    uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.54, 0.64))
     uniforms.finalSolid.value = flatten
     if (fog) {
       fog.color.copy(uniforms.horizonColor.value)

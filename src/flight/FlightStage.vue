@@ -158,7 +158,7 @@ onMounted(() => {
     sky.update(t, scene.fog)
     // 第二幕離場後完整保留一段桃金暖陽；第三幕後半才混回現有晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
-    const morning = THREE.MathUtils.smoothstep(t, 0.47, 0.62)
+    const morning = THREE.MathUtils.smoothstep(t, 0.52, 0.66)
     const hemi = scene.getObjectByName('journey-hemi')
     const sun = scene.getObjectByName('journey-sun')
     const stars = scene.getObjectByName('journey-stars')
