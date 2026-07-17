@@ -1,5 +1,11 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, seededRandom, standard } from '../flight/stage/materials.js'
+import { DRONE_ARRIVAL_CURVE, DRONE_ARRIVAL_RANGE } from './droneArrival.js'
+
+const smoothstep = (edge0, edge1, value) => {
+  const t = THREE.MathUtils.clamp((value - edge0) / Math.max(edge1 - edge0, 1e-6), 0, 1)
+  return t * t * (3 - 2 * t)
+}
 
 /** 第三幕：以無人機高空視角隱喻全端視野；它是視覺主題，不宣稱真實無人機專案。 */
 export function buildDroneCity() {
@@ -71,7 +77,7 @@ export function buildDroneCity() {
   })
 
   const drones = []
-  const makeDrone = (index) => {
+  const makeDrone = (index, scale = 0.82 + (index % 3) * 0.08) => {
     const d = new THREE.Group()
     const shell = standard(0x9ba9b1, { roughness: 0.34, metalness: 0.58 })
     const dark = focus(0x17202a, { roughness: 0.3, metalness: 0.62 })
@@ -92,12 +98,13 @@ export function buildDroneCity() {
     lens.scale.set(1, 0.65, 0.45)
     lens.position.set(0, -0.04, -0.5)
     d.add(lens)
-    d.scale.setScalar(index === 0 ? 1.2 : 0.82 + (index % 3) * 0.08)
+    d.scale.setScalar(scale)
     return d
   }
-  const starts = [[-10, 8, 8], [-5, 11, -4], [1, 9, 1], [7, 11, -6], [11, 8, 7], [-8, 6, 0], [5, 7, 6]]
+  // 左下角的大型無人機不先放進編隊；由第二幕飛來的 arrival drone 在轉場末端補上。
+  const starts = [[-5, 11, -4], [1, 9, 1], [7, 11, -6], [11, 8, 7], [-8, 6, 0], [5, 7, 6]]
   starts.forEach((p, i) => {
-    const d = makeDrone(i)
+    const d = makeDrone(i + 1)
     d.position.set(...p)
     d.rotation.y = -0.4 + i * 0.18
     d.userData.base = d.position.clone()
@@ -105,6 +112,16 @@ export function buildDroneCity() {
     B.add(d)
     drones.push(d)
   })
+
+  const arrivalDrone = makeDrone(0, 1.2)
+  arrivalDrone.visible = false
+  arrivalDrone.userData.base = new THREE.Vector3(-10, 8, 8)
+  arrivalDrone.userData.phase = 0
+  arrivalDrone.userData.arrival = true
+  arrivalDrone.userData.pathPoint = new THREE.Vector3()
+  arrivalDrone.userData.pathTangent = new THREE.Vector3()
+  B.add(arrivalDrone)
+  drones.push(arrivalDrone)
 
   // 抽象系統脈絡 HUD：只作為 Portfolio 的視覺語言，不描述無人機職責。
   const hud = new THREE.Group()
@@ -125,6 +142,29 @@ export function updateDroneCity(group, t) {
   group.visible = t >= 0.37 && t <= 0.59
   const time = performance.now() * 0.001
   for (const drone of group.userData.drones || []) {
+    if (drone.userData.arrival) {
+      const [start, end] = DRONE_ARRIVAL_RANGE
+      const flightT = THREE.MathUtils.clamp((t - start) / (end - start), 0, 1)
+      drone.visible = t >= start - 0.004
+
+      if (flightT < 1) {
+        // 和鏡頭 shot 使用同一個 easeInOutSine；只做一層 interpolation，避免轉場中途半停。
+        const eased = -(Math.cos(Math.PI * flightT) - 1) / 2
+        DRONE_ARRIVAL_CURVE.getPointAt(eased, drone.userData.pathPoint)
+        DRONE_ARRIVAL_CURVE.getTangentAt(eased, drone.userData.pathTangent)
+        drone.position.copy(drone.userData.pathPoint)
+        drone.rotation.y = Math.atan2(-drone.userData.pathTangent.x, -drone.userData.pathTangent.z)
+        drone.rotation.z = THREE.MathUtils.clamp(-drone.userData.pathTangent.x * 0.09, -0.09, 0.09)
+      } else {
+        // 到站後從精確終點逐漸接上編隊的微幅懸停，不在交界瞬間跳動。
+        const hover = smoothstep(end, end + 0.02, t)
+        drone.position.y = drone.userData.base.y + Math.sin(time * 1.35) * 0.22 * hover
+        drone.position.x = drone.userData.base.x + Math.sin(time * 0.36) * 0.35 * hover
+        drone.position.z = drone.userData.base.z
+        drone.rotation.z = Math.sin(time * 0.8) * 0.035 * hover
+      }
+      continue
+    }
     drone.position.y = drone.userData.base.y + Math.sin(time * 1.35 + drone.userData.phase) * 0.22
     drone.position.x = drone.userData.base.x + Math.sin(time * 0.36 + drone.userData.phase) * 0.35
     drone.rotation.z = Math.sin(time * 0.8 + drone.userData.phase) * 0.035

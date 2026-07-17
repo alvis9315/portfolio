@@ -10,6 +10,11 @@ import ProjectCard from './ui/ProjectCard.vue'
 import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
+import {
+  DRONE_ARRIVAL_CAMERA_PATH,
+  DRONE_ARRIVAL_LOOK_PATH,
+  DRONE_ARRIVAL_RANGE,
+} from './scenes/droneArrival.js'
 import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
 import { buildCreativeLab, updateCreativeLab } from './scenes/creativeLab.js'
 import { buildFinalDesk, updateFinalDesk } from './scenes/finalDesk.js'
@@ -91,9 +96,15 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    shot: line({ fromPos: SEAM_2.pos, toPos: DRONE_VIEW.pos, fromLook: SEAM_2.look, toLook: DRONE_VIEW.look }),
-    // 城市離場到無人機全景放慢，避免第二幕 hold 結束後立刻掠過下一段路徑。
-    range: [0.4, 0.48], easing: easeInOutSine,
+    // 同一台無人機從第二幕飛向第三幕：前半段鏡頭貼近機體，後半段向上拉開揭示編隊。
+    // 路徑與 droneCity 的 arrival drone 共用具名時間範圍，避免鏡頭／機體各自平滑而半途卡頓。
+    shot: flyThrough({
+      path: DRONE_ARRIVAL_CAMERA_PATH,
+      look: DRONE_ARRIVAL_LOOK_PATH,
+      tension: 0.28,
+    }),
+    range: DRONE_ARRIVAL_RANGE,
+    easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
