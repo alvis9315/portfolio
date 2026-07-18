@@ -11,9 +11,8 @@ import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
 import {
-  DRONE_ARRIVAL_CAMERA_PATH,
-  DRONE_ARRIVAL_LOOK_PATH,
   DRONE_ARRIVAL_RANGE,
+  droneFirstPersonShot,
 } from './scenes/droneArrival.js'
 import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
 import { buildCreativeLab, updateCreativeLab } from './scenes/creativeLab.js'
@@ -96,19 +95,20 @@ const flight = composeShots([
     easing: easeInOutSine,
   },
   {
-    // 同一台無人機從第二幕飛向第三幕：前半段鏡頭貼近機體，後半段向上拉開揭示編隊。
+    // 同一台無人機從第二幕飛向第三幕：短促拉近後維持半機身主觀，抵達末段才歸位。
     // 路徑與 droneCity 的 arrival drone 共用具名時間範圍，避免鏡頭／機體各自平滑而半途卡頓。
-    shot: flyThrough({
-      path: DRONE_ARRIVAL_CAMERA_PATH,
-      look: DRONE_ARRIVAL_LOOK_PATH,
-      tension: 0.28,
+    shot: droneFirstPersonShot({
+      fromPos: SEAM_2.pos,
+      fromLook: SEAM_2.look,
+      toPos: DRONE_VIEW.pos,
+      toLook: DRONE_VIEW.look,
     }),
     range: DRONE_ARRIVAL_RANGE,
-    easing: easeInOutSine,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
-    range: [0.51, 0.56], easing: easeInOutCubic,
+    // 第三幕在 0.50 抵達後留出約一秒的 scroll hold，才進入第四幕。
+    range: [0.53, 0.56], easing: easeInOutCubic,
   },
   {
     // 戰情室不只停在遠景：推近監控牆，再落到中央指揮桌。

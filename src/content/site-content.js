@@ -34,7 +34,8 @@ export const site = {
     },
     {
       id: 'drone-ops',
-      range: [0.43, 0.51],
+      // 無人機在 0.50 完成歸位後才顯示；0.53 第四幕起飛前淡出。
+      range: [0.5, 0.53],
       position: { right: '6vw', top: '18vh', textAlign: 'right', maxWidth: '560px' },
       eyebrow: '03 — Perspective',
       title: '在複雜系統中找到清楚航線',

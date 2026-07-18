@@ -1,30 +1,14 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, seededRandom, standard } from '../flight/stage/materials.js'
 import {
-  DRONE_ARRIVAL_CURVE,
   DRONE_ARRIVAL_RANGE,
-  DRONE_REVEAL_KEYS,
   DRONE_REVEAL_RANGE,
+  sampleDroneFlight,
 } from './droneArrival.js'
 
 const smoothstep = (edge0, edge1, value) => {
   const t = THREE.MathUtils.clamp((value - edge0) / Math.max(edge1 - edge0, 1e-6), 0, 1)
   return t * t * (3 - 2 * t)
-}
-
-const sampleKeyedReveal = (keys, t, point, tangent) => {
-  let from = keys[0]
-  let to = keys[keys.length - 1]
-  for (let i = 1; i < keys.length; i++) {
-    if (t <= keys[i].t) {
-      from = keys[i - 1]
-      to = keys[i]
-      break
-    }
-  }
-  const localT = smoothstep(from.t, to.t, t)
-  point.lerpVectors(from.position, to.position, localT)
-  tangent.subVectors(to.position, from.position).normalize()
 }
 
 /** 第三幕：以無人機高空視角隱喻全端視野；它是視覺主題，不宣稱真實無人機專案。 */
@@ -140,10 +124,6 @@ export function buildDroneCity() {
   arrivalDrone.userData.arrival = true
   arrivalDrone.userData.pathPoint = new THREE.Vector3()
   arrivalDrone.userData.pathTangent = new THREE.Vector3()
-  arrivalDrone.userData.revealKeys = DRONE_REVEAL_KEYS.map(({ t, position }) => ({
-    t,
-    position: new THREE.Vector3(...position),
-  }))
   B.add(arrivalDrone)
   drones.push(arrivalDrone)
 
@@ -163,34 +143,20 @@ export function buildDroneCity() {
 }
 
 export function updateDroneCity(group, t) {
-  group.visible = t >= 0.37 && t <= 0.59
+  group.visible = t >= DRONE_REVEAL_RANGE[0] && t <= 0.59
   const time = performance.now() * 0.001
   for (const drone of group.userData.drones || []) {
     if (drone.userData.arrival) {
-      const [start, end] = DRONE_ARRIVAL_RANGE
-      const [revealStart, revealEnd] = DRONE_REVEAL_RANGE
-      const flightT = THREE.MathUtils.clamp((t - start) / (end - start), 0, 1)
+      const [, end] = DRONE_ARRIVAL_RANGE
+      const [revealStart] = DRONE_REVEAL_RANGE
       drone.visible = t >= revealStart
 
-      if (t < revealEnd) {
-        // 第二幕離場尾端：先從建築下方鑽上來，抵達追隨鏡頭正前方才交棒給正式飛行。
-        sampleKeyedReveal(
-          drone.userData.revealKeys,
-          t,
-          drone.userData.pathPoint,
-          drone.userData.pathTangent,
-        )
+      if (t < end) {
+        // 從第二幕下方升起直到第三幕歸位，全程只取樣同一條曲線，不在控制點煞停。
+        sampleDroneFlight(t, drone.userData.pathPoint, drone.userData.pathTangent)
         drone.position.copy(drone.userData.pathPoint)
         drone.rotation.y = Math.atan2(-drone.userData.pathTangent.x, -drone.userData.pathTangent.z)
         drone.rotation.z = THREE.MathUtils.clamp(-drone.userData.pathTangent.x * 0.08, -0.08, 0.08)
-      } else if (flightT < 1) {
-        // 和鏡頭 shot 使用同一個 easeInOutSine；只做一層 interpolation，避免轉場中途半停。
-        const eased = -(Math.cos(Math.PI * flightT) - 1) / 2
-        DRONE_ARRIVAL_CURVE.getPointAt(eased, drone.userData.pathPoint)
-        DRONE_ARRIVAL_CURVE.getTangentAt(eased, drone.userData.pathTangent)
-        drone.position.copy(drone.userData.pathPoint)
-        drone.rotation.y = Math.atan2(-drone.userData.pathTangent.x, -drone.userData.pathTangent.z)
-        drone.rotation.z = THREE.MathUtils.clamp(-drone.userData.pathTangent.x * 0.09, -0.09, 0.09)
       } else {
         // 到站後從精確終點逐漸接上編隊的微幅懸停，不在交界瞬間跳動。
         const hover = smoothstep(end, end + 0.02, t)
