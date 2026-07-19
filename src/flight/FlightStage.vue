@@ -1,15 +1,15 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { lightingPresets } from './stage/lights.js'
 import { createSceneManager } from './stage/lazyScenes.js'
 import { createFlightDebug } from './stage/debugPath.js'
 import { createNightEnv } from './stage/environment.js'
 import { createSky } from './stage/sky.js'
 import { disposeMaterialCaches } from './stage/materials.js'
+import { createProjectPicker } from './stage/projectPicker.js'
+import { createRenderPipeline } from './stage/renderPipeline.js'
+import { createStageResize } from './stage/resize.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -34,7 +34,8 @@ const props = defineProps({
 const emit = defineEmits(['select'])
 
 const canvas = ref(null)
-let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, composer, nightEnv, sky
+let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, nightEnv, sky
+let pipeline, resizeController, projectPicker
 const lookTarget = new THREE.Vector3()
 const morningSkyLight = new THREE.Color(0xbad2e8)
 const morningGroundLight = new THREE.Color(0x465e73)
@@ -44,11 +45,15 @@ const dawnGroundLight = new THREE.Color(0x5f4640)
 const dawnSunLight = new THREE.Color(0xffc68f)
 
 onMounted(() => {
-  renderer = new THREE.WebGLRenderer({ canvas: canvas.value, antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
   scene = new THREE.Scene()
   camera = new THREE.PerspectiveCamera(props.fov, 1, 0.1, 400)
+  pipeline = createRenderPipeline({
+    canvas: canvas.value,
+    scene,
+    camera,
+    pixelRatio: Math.min(window.devicePixelRatio, 2),
+  })
+  renderer = pipeline.renderer
 
   cleanupLights = (lightingPresets[props.lighting] || lightingPresets.dusk)(scene)
   // 夜景環境貼圖：玻璃鏡面大樓的反射來源（scene.environment 自動套到所有 PBR 材質）
@@ -76,82 +81,19 @@ onMounted(() => {
     scene.add(flightDebug.group)
   }
 
-  // Bloom 後製：讓發光物件（螢幕/窗燈/樓頂燈/月亮）暈開，拉「3D 動畫感」。
-  // threshold 0.6 只讓夠亮的 emissive（glow 材質）發散，暗building 不受影響。
-  // 參數 (resolution, strength, radius, threshold)——想更誇張調 strength。
-  composer = new EffectComposer(renderer)
-  composer.addPass(new RenderPass(scene, camera))
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.55, 0.6))
-
-  const resize = () => {
-    const w = window.innerWidth
-    const h = window.innerHeight
-    // updateStyle=true（預設）：讓 renderer 直接寫 inline canvas.style 寬高(px)。
-    // 不可省成 setSize(w,h,false)——那會改靠 scoped CSS 撐大小,scoped style 一旦
-    // 沒套上(累積多次 HMR / server 重啟後的舊分頁),canvas 會膨脹成 drawing buffer
-    // 尺寸(DPR 2 → 兩倍視窗),內容被擠到右下角。inline 寬高才是穩的。
-    renderer.setSize(w, h)
-    composer.setSize(w, h)
-    camera.aspect = w / h
-    camera.updateProjectionMatrix()
-  }
-  window.addEventListener('resize', resize)
-  resize()
+  resizeController = createStageResize({ camera, pipeline })
 
   /* ── Raycaster 互動：地標樓 hover 高亮 + click 選取 ──────────
    * 只有城市在場（manager.live 有 city）且指標在畫面上時才 pick。
    * hover 是純 3D（改材質 emissive）留在舞台內；click 才把資料 emit 出去。
    * 每 frame 重算 pick，因為鏡頭在飛——指標不動，樓也會滑進滑出准心。 */
-  const raycaster = new THREE.Raycaster()
-  const pointer = new THREE.Vector2()
-  let hasPointer = false
-  let hovered = null
-  let hoveredEmissive = 0
-
-  const pickProjectMesh = () => {
-    raycaster.setFromCamera(pointer, camera)
-    for (const hit of raycaster.intersectObjects(scene.children, true)) {
-      for (let o = hit.object; o; o = o.parent) {
-        if (o.userData?.project) return o // 命中最近的、且屬於某 project 的樓（窗戶/燈沒有 project 會被略過）
-      }
-    }
-    return null
-  }
-
-  const setHover = (mesh) => {
-    if (mesh === hovered) return
-    if (hovered) {
-      // 還原前一個：有 emissive 的（樓）還原色，沒有的（霓虹字）還原 scale
-      if (hovered.material?.emissive) hovered.material.emissive.setHex(hoveredEmissive)
-      else if (hovered.userData.baseScale) hovered.scale.copy(hovered.userData.baseScale)
-    }
-    hovered = mesh
-    if (hovered) {
-      if (hovered.material?.emissive) {
-        hoveredEmissive = hovered.material.emissive.getHex()
-        // 暗青微亮。不可用滿亮 screenGlow——會把整棟樓塗成死青色像破圖。
-        hovered.material.emissive.setHex(0x2f4a43)
-      } else {
-        hovered.userData.baseScale = hovered.userData.baseScale || hovered.scale.clone()
-        hovered.scale.copy(hovered.userData.baseScale).multiplyScalar(1.12) // 霓虹字放大當高亮
-      }
-    }
-    canvas.value.style.cursor = hovered ? 'pointer' : ''
-  }
-
-  const onPointerMove = (e) => {
-    pointer.x = (e.clientX / window.innerWidth) * 2 - 1
-    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1
-    hasPointer = true
-  }
-  const onPointerLeave = () => { hasPointer = false }
-  const onClick = () => {
-    const mesh = manager.live.has('city') ? pickProjectMesh() : null
-    emit('select', mesh ? mesh.userData.project : null)
-  }
-  canvas.value.addEventListener('pointermove', onPointerMove)
-  canvas.value.addEventListener('pointerleave', onPointerLeave)
-  canvas.value.addEventListener('click', onClick)
+  projectPicker = createProjectPicker({
+    canvas: canvas.value,
+    camera,
+    scene,
+    isEnabled: () => manager.live.has('city'),
+    onSelect: (project) => emit('select', project),
+  })
 
   const loop = () => {
     const t = props.progress.value
@@ -180,7 +122,7 @@ onMounted(() => {
     // 彎到畫面角落，暖光與雲帶因此看起來像一顆過曝光球。
     if (sky) sky.mesh.position.copy(camera.position)
     camera.lookAt(lookTarget)
-    setHover(hasPointer && manager.live.has('city') ? pickProjectMesh() : null)
+    projectPicker.update()
     // Reflector 的反射貼圖在 composer 之外先手動更新（見 city.js 的 updateReflection
     // 註解）——Reflector 的原生 hook 若在 composer pass 內觸發會弄髒 viewport。
     scene.traverse((o) => {
@@ -189,17 +131,15 @@ onMounted(() => {
       for (let p = o; p; p = p.parent) if (!p.visible) return
       o.userData.updateReflection(renderer, scene, camera)
     })
-    composer.render()
+    pipeline.render()
     rafId = requestAnimationFrame(loop)
   }
   loop()
 
   onBeforeUnmount(() => {
     cancelAnimationFrame(rafId)
-    window.removeEventListener('resize', resize)
-    canvas.value?.removeEventListener('pointermove', onPointerMove)
-    canvas.value?.removeEventListener('pointerleave', onPointerLeave)
-    canvas.value?.removeEventListener('click', onClick)
+    resizeController.dispose()
+    projectPicker.dispose()
     if (flightDebug) {
       scene.remove(flightDebug.group)
       flightDebug.dispose()
@@ -213,11 +153,7 @@ onMounted(() => {
     }
     scene.environment = null
     nightEnv?.dispose()
-    // EffectComposer.dispose() 只處理 composer 自己的 render targets；各 pass
-    // （尤其 UnrealBloomPass）仍要各自清除內部 render targets / materials。
-    composer.passes.forEach((pass) => pass.dispose?.())
-    composer.dispose()
-    renderer.dispose()
+    pipeline.dispose()
   })
 })
 </script>

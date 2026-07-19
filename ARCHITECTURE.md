@@ -24,7 +24,10 @@ src/
 │   └── stage/
 │       ├── lights.js           # 燈光氛圍 preset（dusk / night / dawn）
 │       ├── materials.js        # palette token + 材質 preset + 建模 helper
-│       └── lazyScenes.js       # 場景 lazy build / dispose 管理
+│       ├── lazyScenes.js       # 場景 lazy build / dispose 管理
+│       ├── renderPipeline.js   # WebGLRenderer + EffectComposer ownership
+│       ├── resize.js           # viewport / camera resize lifecycle
+│       └── projectPicker.js    # project raycast / hover / click lifecycle
 ├── scenes/                     # 場景模組：純函數 build(ctx) → Group
 │   ├── workbench.js            # 01 工作桌（About）
 │   ├── city.js                 # 02 城市（Projects，data-driven）
