@@ -321,9 +321,10 @@ seam 無警告 → 最後才加 easing 調節奏。節奏太快就拉長 App.vue
 
 ## 已知的擴充關卡（roadmap）
 
-1. **敘事停靠與互動閘門**：詳細決策以 `docs/scene-plan.md`「已確認待辦」為準；先做
-   第二幕 `t=0.32`、第三幕 `t=0.50` Soft Snap，第一幕與右側六幕 rail 不變。
-   第三幕 Hard Gate 必須等第四幕資訊架構確認後再做。
+1. **Cinematic Stations 與互動閘門**：詳細決策以 `docs/scene-plan.md`「已確認待辦」
+   為準。這是一次 gesture 觸發一段固定時間動畫的雙向 state machine，不是 Soft Snap
+   或 scroll scrub；第一幕與右側六幕 rail 不變。第三幕 Hard Gate 必須等第四幕資訊
+   架構確認後再做。
 2. **首屏 bundle 拆分**：目前 production JS 約 656 KB；場景 registry 若改 dynamic
    import，必須先設計 async build 與取消載入，不能在現行同步 manager 內硬塞。
 3. **GLTF 資產階段**：確認正式模型後，擴充 AssetRegistry 到 GLTF／DRACO；不要先為
