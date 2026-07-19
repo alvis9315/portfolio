@@ -6,10 +6,45 @@
  */
 const range = (start, end) => Object.freeze([start, end])
 const scene = (load, visible = load) => Object.freeze({ load, visible })
+const station = (id, progress, chapter, rearmDelay) => Object.freeze({
+  id,
+  progress,
+  chapter,
+  ...(rearmDelay === undefined ? {} : { rearmDelay }),
+})
+const stationTransition = (duration, keyframes) => Object.freeze({
+  duration,
+  keyframes: Object.freeze(keyframes.map(([at, progress]) => Object.freeze({ at, progress }))),
+})
 
 export const DRONE_ARRIVAL_RANGE = range(0.4, 0.5)
 export const DRONE_REVEAL_RANGE = range(0.368, DRONE_ARRIVAL_RANGE[0])
 export const DRONE_FLIGHT_RANGE = range(DRONE_REVEAL_RANGE[0], DRONE_ARRIVAL_RANGE[1])
+
+/**
+ * 第二、三幕的隱藏敘事中繼站。
+ *
+ * station.progress 是停靠構圖；transitions[n] 負責 stations[n] ↔ stations[n + 1]。
+ * keyframes 將既有 shot 之間的閱讀 hold 壓縮到合理比例，避免固定時間播放時
+ * 長時間不動、最後才突然趕路。反向播放會使用同一組 keyframes 倒放。
+ */
+export const journeyStations = Object.freeze({
+  rearmDelay: 420,
+  points: Object.freeze([
+    station('city-overview', 0.23, 'projects'),
+    station('city-billboard', 0.29, 'projects'),
+    station('city-glass', 0.32, 'projects'),
+    station('drone-cockpit', 0.42, 'drone-ops'),
+    // 最終俯瞰至少停留一秒，讓第三幕標題可讀後才允許進入第四幕。
+    station('drone-overview', 0.5, 'drone-ops', 1000),
+  ]),
+  transitions: Object.freeze([
+    stationTransition(2400, [[0, 0.23], [0.08, 0.24], [1, 0.29]]),
+    stationTransition(2200, [[0, 0.29], [1, 0.32]]),
+    stationTransition(3200, [[0, 0.32], [0.15, 0.37], [0.55, 0.4], [1, 0.42]]),
+    stationTransition(2800, [[0, 0.42], [1, 0.5]]),
+  ]),
+})
 
 export const journeyTimeline = Object.freeze({
   shots: Object.freeze({

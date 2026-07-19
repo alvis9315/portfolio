@@ -149,6 +149,15 @@
 
 ### Scroll-triggered Cinematic Stations 與第三幕互動
 
+- ✅ **Station 核心機制已完成（2026-07-19）**：wheel／touch／keyboard 一次 gesture
+  觸發固定時間自動播放；播放中丟棄額外輸入，抵達並等待 input idle 後重新 armed，
+  向上可沿同一路徑倒放。作品卡開啟時 driver 會消耗換站輸入，右側仍維持六個章節點。
+- ✅ 五個已確認構圖已由目前 flight 精確取樣並集中於 `journey/timeline.js`：
+  `0.23 / 0.29 / 0.32 / 0.42 / 0.50`。初始固定時長依序為
+  `2.4s / 2.2s / 3.2s / 2.8s`；轉場 keyframes 會壓縮既有閱讀 hold，避免前段停住、
+  後段趕路。後續只依實機觀感微調 duration，不修改五個停靠 pose。
+- ✅ 第五站抵達才直接顯示第三幕標題，並至少鎖定一秒後才允許離開 Station 區間；
+  第四站只切換右側 `03 · Perspective`，不顯示大標。
 - 這不是 Soft Snap，也不是由 scroll 量 scrub 動畫。Station 停住等待一個新的明確
   wheel／touch gesture；觸發後由系統以固定、較慢且穩定的時間自動播放到下一站，
   播放期間丟棄額外輸入，抵達且滾輪慣性 idle 後才重新 armed。
@@ -165,8 +174,8 @@
   4. **無人機半機身視角（附圖 4）**：正式算第三幕，右側 active rail 切換為
      `03 · Perspective`，但大標題尚不顯示。
   5. **第三幕全局俯瞰（附圖 5）**：現有最終構圖不改，抵達後才顯示第三幕標題。
-- 實作前須從目前 flight 精確取樣上述五張附圖對應 pose，不以既有 shot endpoint 或
-  猜測的 progress 數值代替；每段 duration 依距離與實際播放驗收再定。
+- 五個 pose 與初始 duration 已實作；節奏仍須由 Alvis 以實際觸控板與手機手勢做最終
+  主觀驗收，驗收只調 `journeyStations.transitions[].duration`。
 - 不把其他曲線控制點或純轉場節點設為 Station。
 - 第三幕後續的 `SELECT A MISSION` 屬於獨立 **Hard Gate** 待辦：使用者再次滑動後淡出
   標題、點亮藍光面板，選擇 Analyze／Build／Deliver，再經面板拉近與數位 Portal 進入

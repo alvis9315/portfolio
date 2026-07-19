@@ -11,23 +11,29 @@ import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
 import { buildCreativeLab, updateCreativeLab } from './scenes/creativeLab.js'
 import { buildFinalDesk, updateFinalDesk } from './scenes/finalDesk.js'
 import { site } from './content/site-content.js'
-import { journeyTimeline } from './journey/timeline.js'
+import { journeyStations, journeyTimeline } from './journey/timeline.js'
 import { flight } from './journey/flight.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
-const ctl = useScrollFlight({ damping: 0.08 })
+/* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
+ * 先建立互動狀態，讓 Station driver 能在卡片開啟期間阻擋換站。 */
+const activeProject = ref(null)
+const ctl = useScrollFlight({
+  damping: 0.08,
+  stations: journeyStations,
+  isInteractionBlocked: () => Boolean(activeProject.value),
+})
 // 六幕需要足夠的實體捲動距離讓觀眾停留觀看。640vh 扣掉一個 viewport 後，
 // 每幕平均不到一個螢幕高度，觸控板的一次慣性滑動很容易直接跨幕。
 const SCROLL_LENGTH_VH = 1100
 
-/* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
- * 城市場景的可見 t 區間 = flyThrough 段，卡片離開此區間自動淡出。 */
-const activeProject = ref(null)
 const railOpen = ref(false)
 const CITY_RANGE = journeyTimeline.ui.projectCard
 
 const navSections = computed(() => site.sections.slice(1))
 const activeSectionId = computed(() => {
+  if (ctl.activeStation.value) return ctl.activeStation.value.chapter
+
   const t = ctl.progress.value
   return navSections.value.reduce((closest, section) => {
     const center = (section.range[0] + section.range[1]) / 2
@@ -37,8 +43,7 @@ const activeSectionId = computed(() => {
 
 function jumpToSection(section) {
   const target = (section.range[0] + section.range[1]) / 2
-  const max = document.documentElement.scrollHeight - window.innerHeight
-  window.scrollTo({ top: max * target, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  ctl.jumpTo(target)
   railOpen.value = false
 }
 
@@ -81,6 +86,7 @@ const scenes = [
     :key="s.id"
     :progress="ctl.progress"
     :range="s.range"
+    :instant-in="s.id === 'projects' || s.id === 'drone-ops'"
     :style="s.position"
   >
     <div class="eyebrow">{{ s.eyebrow }}</div>

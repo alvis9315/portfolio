@@ -13,6 +13,8 @@ const props = defineProps({
   range: { type: Array, required: true },
   /** 淡入淡出佔區間的比例 */
   fade: { type: Number, default: 0.22 },
+  /** Station 標題抵達 range 起點時直接顯示，不讓精確停點落在 opacity 0。 */
+  instantIn: { type: Boolean, default: false },
 })
 
 const opacity = computed(() => {
@@ -20,6 +22,7 @@ const opacity = computed(() => {
   const [a, b] = props.range
   const m = props.fade * (b - a)
   if (t < a || t > b) return 0
+  if (props.instantIn && t <= b - m) return 1
   // 首幕在頁面載入時直接完整顯示；只保留離開區間時的淡出。
   if (a === 0 && t <= b - m) return 1
   // 末幕只淡入不淡出：捲到真正頁底時收束文案必須保持顯示。
