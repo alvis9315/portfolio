@@ -11,6 +11,8 @@ import { createProjectPicker } from './stage/projectPicker.js'
 import { createRenderPipeline } from './stage/renderPipeline.js'
 import { createStageResize } from './stage/resize.js'
 import { createAssetRegistry } from './stage/assets.js'
+import { createStagePerformanceProfile } from './stage/performance.js'
+import { createPageVisibility } from './stage/visibility.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -36,7 +38,8 @@ const emit = defineEmits(['select'])
 
 const canvas = ref(null)
 let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, nightEnv, sky
-let pipeline, resizeController, projectPicker, assets, sceneContext
+let pipeline, resizeController, projectPicker, assets, sceneContext, visibilityController
+let running = false
 const lookTarget = new THREE.Vector3()
 const clock = new THREE.Clock()
 // 每 frame 重用同一個物件，避免 scene update 為時間資訊產生短命 allocation。
@@ -51,15 +54,17 @@ const dawnSunLight = new THREE.Color(0xffc68f)
 onMounted(() => {
   scene = new THREE.Scene()
   camera = new THREE.PerspectiveCamera(props.fov, 1, 0.1, 400)
+  const performanceProfile = createStagePerformanceProfile()
   pipeline = createRenderPipeline({
     canvas: canvas.value,
     scene,
     camera,
-    pixelRatio: Math.min(window.devicePixelRatio, 2),
+    pixelRatio: performanceProfile.pixelRatio,
+    bloom: performanceProfile.bloom,
   })
   renderer = pipeline.renderer
   assets = createAssetRegistry()
-  sceneContext = { ...props.context, assets }
+  sceneContext = { ...props.context, assets, performance: performanceProfile }
 
   cleanupLights = (lightingPresets[props.lighting] || lightingPresets.dusk)(scene)
   // 夜景環境貼圖：玻璃鏡面大樓的反射來源（scene.environment 自動套到所有 PBR 材質）
@@ -102,6 +107,7 @@ onMounted(() => {
   })
 
   const loop = () => {
+    if (!running) return
     const t = props.progress.value
     frame.progress = t
     frame.delta = clock.getDelta()
@@ -143,10 +149,34 @@ onMounted(() => {
     pipeline.render()
     rafId = requestAnimationFrame(loop)
   }
-  loop()
+
+  const stopLoop = () => {
+    if (!running) return
+    running = false
+    cancelAnimationFrame(rafId)
+    clock.stop()
+  }
+
+  const startLoop = () => {
+    if (running) return
+    // THREE.Clock.start() 會把 elapsedTime 歸零；先保存再還原，背景分頁期間
+    // 才會是「暫停」而不是回到動畫起點或把整段背景時間算進 delta。
+    const elapsed = clock.elapsedTime
+    clock.start()
+    clock.elapsedTime = elapsed
+    running = true
+    loop()
+  }
+
+  visibilityController = createPageVisibility({
+    onHidden: stopLoop,
+    onVisible: startLoop,
+  })
+  if (visibilityController.isVisible()) startLoop()
 
   onBeforeUnmount(() => {
-    cancelAnimationFrame(rafId)
+    stopLoop()
+    visibilityController.dispose()
     resizeController.dispose()
     projectPicker.dispose()
     if (flightDebug) {

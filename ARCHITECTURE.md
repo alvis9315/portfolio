@@ -29,6 +29,8 @@ src/
 │       ├── resourceRegistry.js # Stage-shared Texture ownership
 │       ├── renderPipeline.js   # WebGLRenderer + EffectComposer ownership
 │       ├── resize.js           # viewport / camera resize lifecycle
+│       ├── performance.js      # desktop / mobile 渲染預算
+│       ├── visibility.js       # 背景分頁 RAF pause / resume
 │       └── projectPicker.js    # project raycast / hover / click lifecycle
 ├── scenes/                     # 場景模組：純函數 build(ctx) → Group
 │   ├── workbench.js            # 01 工作桌（About）
@@ -181,6 +183,9 @@ Registry 條目：
   `ctx.assets.loadTexture('textures/...')`，同 URL 會去重並依 Vite `BASE_URL` 解析。
   lazy scene 卸載不釋放共享資產，整個 Stage 卸載時才統一清理。場景程序化建立的
   CanvasTexture 仍由該 scene 的 disposer 負責。
+- `ctx.performance` 是 Stage 建立時依 viewport／pointer 決定的渲染預算。手機降低
+  DPR、Reflector render target 與 Bloom 強度；桌面維持原參數。分頁不可見時 Stage
+  會停止 RAF，重新可見後保留原本 elapsed time 繼續。
 
 ### 7. lights（燈光氛圍）
 

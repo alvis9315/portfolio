@@ -4,13 +4,20 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 
 /** 唯一的 WebGLRenderer + post-processing ownership。 */
-export function createRenderPipeline({ canvas, scene, camera, pixelRatio }) {
+export function createRenderPipeline({ canvas, scene, camera, pixelRatio, bloom }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setPixelRatio(pixelRatio)
 
   const composer = new EffectComposer(renderer)
   composer.addPass(new RenderPass(scene, camera))
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.55, 0.6))
+  composer.addPass(
+    new UnrealBloomPass(
+      new THREE.Vector2(1, 1),
+      bloom?.strength ?? 0.9,
+      bloom?.radius ?? 0.55,
+      bloom?.threshold ?? 0.6
+    )
+  )
 
   return {
     renderer,

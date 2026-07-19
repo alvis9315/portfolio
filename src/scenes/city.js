@@ -252,9 +252,10 @@ export function buildCity(ctx = {}) {
     box(B, heroW, heroH, heroD, [f, f, roofMat, roofMat, f, f], 0, heroH / 2, heroZ)
   }
   // 鏡面鋪滿整面牆（尺寸=樓體，格線 repeat 才會與側面的行列對齊）
+  const reflectorSize = ctx.performance?.reflectorSize ?? 1024
   const mirror = new Reflector(new THREE.PlaneGeometry(heroW, heroH), {
-    textureWidth: 1024,
-    textureHeight: 1024,
+    textureWidth: reflectorSize,
+    textureHeight: reflectorSize,
     color: 0x5b6675,
   })
   mirror.position.set(0, heroH * 0.5, heroZ + heroD / 2 + 0.05)
