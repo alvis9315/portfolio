@@ -1,23 +1,18 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useScrollFlight } from './flight/useScrollFlight.js'
-import { composeShots } from './flight/composeShots.js'
-import { dollyIn, flyThrough, line } from './flight/shots.js'
-import { easeInOutCubic, easeInOutSine, easeOutCubic } from './flight/easing.js'
 import FlightStage from './flight/FlightStage.vue'
 import FlightCaption from './flight/FlightCaption.vue'
 import ProjectCard from './ui/ProjectCard.vue'
 import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
-import {
-  droneFirstPersonShot,
-} from './scenes/droneArrival.js'
 import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
 import { buildCreativeLab, updateCreativeLab } from './scenes/creativeLab.js'
 import { buildFinalDesk, updateFinalDesk } from './scenes/finalDesk.js'
 import { site } from './content/site-content.js'
 import { journeyTimeline } from './journey/timeline.js'
+import { flight } from './journey/flight.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
 const ctl = useScrollFlight({ damping: 0.08 })
@@ -46,110 +41,6 @@ function jumpToSection(section) {
   window.scrollTo({ top: max * target, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   railOpen.value = false
 }
-
-/* ── 2 + 3. Shot 層 + 編排層 ───────────────────────────────
- * 城市維持原本「天際線 → 玻璃反射」方向，只延長靠近路徑並從看板右側自然掠過；
- * 彩蛋保留在場景中，但不為它額外轉向或安排獨立特寫。 */
-const SEAM_1 = { pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }        // 桌前
-const CITY_SKYLINE = { pos: [90, 19, -4], look: [57, 4, -32] }     // 拍 1：東北高空俯瞰，大樓林立的廣角遠景
-const CITY_GLASS = { pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] } // 拍 2：窄巷內貼玻璃帷幕（反射對街看板）
-const SEAM_2 = { pos: [88, 8, -50], look: [110, 12, -64] }         // 城市離場
-const DRONE_VIEW = { pos: [137, 22, -60], look: [122, 4, -78] }
-const COMMAND_VIEW = { pos: [169, 10, -93], look: [157, 4, -111] }
-const COMMAND_SCREEN = { pos: [160, 6.2, -102], look: [158.8, 4.8, -120.1] }
-const COMMAND_DESK = { pos: [164, 4.8, -105], look: [157.8, 1.9, -110] }
-const LAB_DATA = { pos: [185, 7.2, -134], look: [182, 4.2, -148] }
-const LAB_STUDIO = { pos: [205, 6.4, -134], look: [202.6, 3.2, -145.5] }
-const FINAL_DETAIL = { pos: [229.5, 4.1, -172.5], look: [230.3, 2.25, -178] }
-const FINAL_SCREEN = { pos: [232, 4.6, -173.2], look: [232, 3.1, -178.8] }
-// 收尾回到桌面中軸正視；先前 x=242 的右側斜視會讓整張桌子與螢幕看起來歪斜。
-const FINAL_WIDE = { pos: [232, 9.5, -164], look: [232, 2.5, -178] }
-
-const flight = composeShots([
-  {
-    // 招牌 dolly-in 直逼螢幕，收尾減速「停穩」（螢幕也在這段漸亮）
-    shot: dollyIn({ from: [-20, 11, 30], to: SEAM_1.pos, target: SEAM_1.look }),
-    range: journeyTimeline.shots.workbenchIntro,
-    easing: easeOutCubic,
-  },
-  {
-    // 書桌 → 城市天際線：直線滑移（純 lerp 最順，無樣條 overshoot）
-    shot: line({ fromPos: SEAM_1.pos, toPos: CITY_SKYLINE.pos, fromLook: SEAM_1.look, toLook: CITY_SKYLINE.look }),
-    range: journeyTimeline.shots.workbenchToCity,
-    easing: easeInOutSine,
-  },
-  {
-    // 維持高位掠過看板右側，先讓頂部彩蛋留在畫面內；接近窄巷後才平順下降到玻璃。
-    shot: flyThrough({
-      path: [CITY_SKYLINE.pos, [78, 17, -12], [68, 14, -21], [64.8, 11.8, -26], [64, 9.6, -29.5], [62.5, 7.8, -31.6], CITY_GLASS.pos],
-      look: [CITY_SKYLINE.look, [68, 10.5, -23], [62, 11, -28], [60.5, 10.8, -29.5], [60.3, 9.2, -31.5], [60.2, 8, -33.4], CITY_GLASS.look],
-      tension: 0.32,
-    }),
-    range: journeyTimeline.shots.cityFlyThrough,
-    easing: easeInOutSine,
-  },
-  {
-    // 玻璃反射在 0.32 抵達後保留較長 hold，讓觀眾能看清看板、反射與彩蛋再離場。
-    shot: line({ fromPos: CITY_GLASS.pos, toPos: SEAM_2.pos, fromLook: CITY_GLASS.look, toLook: SEAM_2.look }),
-    range: journeyTimeline.shots.cityDeparture,
-    easing: easeInOutSine,
-  },
-  {
-    // 同一台無人機從第二幕飛向第三幕：短促拉近後維持半機身主觀，抵達末段才歸位。
-    // 路徑與 droneCity 的 arrival drone 共用具名時間範圍，避免鏡頭／機體各自平滑而半途卡頓。
-    shot: droneFirstPersonShot({
-      fromPos: SEAM_2.pos,
-      fromLook: SEAM_2.look,
-      toPos: DRONE_VIEW.pos,
-      toLook: DRONE_VIEW.look,
-    }),
-    range: journeyTimeline.shots.droneArrival,
-  },
-  {
-    shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
-    // 第三幕在 0.50 抵達後留出約一秒的 scroll hold，才進入第四幕。
-    range: journeyTimeline.shots.droneToCommand, easing: easeInOutCubic,
-  },
-  {
-    // 戰情室不只停在遠景：推近監控牆，再落到中央指揮桌。
-    shot: line({ fromPos: COMMAND_VIEW.pos, toPos: COMMAND_SCREEN.pos, fromLook: COMMAND_VIEW.look, toLook: COMMAND_SCREEN.look }),
-    range: journeyTimeline.shots.commandScreen, easing: easeOutCubic,
-  },
-  {
-    shot: line({ fromPos: COMMAND_SCREEN.pos, toPos: COMMAND_DESK.pos, fromLook: COMMAND_SCREEN.look, toLook: COMMAND_DESK.look }),
-    range: journeyTimeline.shots.commandDesk, easing: easeInOutSine,
-  },
-  {
-    // 沿資料方向飛進 AI Lab 左側，而不是直接換成下一張遠景。
-    shot: flyThrough({
-      path: [COMMAND_DESK.pos, [171, 7, -118], [179, 8, -126], LAB_DATA.pos],
-      look: [COMMAND_DESK.look, [170, 4, -124], [179, 4, -136], LAB_DATA.look],
-    }),
-    range: journeyTimeline.shots.commandToLab, easing: easeInOutCubic,
-  },
-  {
-    // 從 RAG 文件流橫移到 FigureShot 攝影棚與猛毒剪影。
-    shot: line({ fromPos: LAB_DATA.pos, toPos: LAB_STUDIO.pos, fromLook: LAB_DATA.look, toLook: LAB_STUDIO.look }),
-    range: journeyTimeline.shots.labStudio, easing: easeInOutSine,
-  },
-  {
-    shot: flyThrough({
-      path: [LAB_STUDIO.pos, [211, 8, -151], [220, 7, -162], FINAL_DETAIL.pos],
-      look: [LAB_STUDIO.look, [205, 3, -151], [220, 3, -169], FINAL_DETAIL.look],
-    }),
-    range: journeyTimeline.shots.labToFinal, easing: easeInOutCubic,
-  },
-  {
-    // 先沿桌上歷程物件推進，再靠近姓名卡。
-    shot: line({ fromPos: FINAL_DETAIL.pos, toPos: FINAL_SCREEN.pos, fromLook: FINAL_DETAIL.look, toLook: FINAL_SCREEN.look }),
-    range: journeyTimeline.shots.finalScreen, easing: easeOutCubic,
-  },
-  {
-    // 回到升級桌面後安靜拉遠，讓物件依旅程順序亮起。
-    shot: line({ fromPos: FINAL_SCREEN.pos, toPos: FINAL_WIDE.pos, fromLook: FINAL_SCREEN.look, toLook: FINAL_WIDE.look }),
-    range: journeyTimeline.shots.finalWide, easing: easeOutCubic,
-  },
-])
 
 /* ── 場景 registry（lazy 建構）────────────────────────── */
 const scenes = [
