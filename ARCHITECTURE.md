@@ -25,6 +25,8 @@ src/
 │       ├── lights.js           # 燈光氛圍 preset（dusk / night / dawn）
 │       ├── materials.js        # palette token + 材質 preset + 建模 helper
 │       ├── lazyScenes.js       # 場景 lazy build / dispose 管理
+│       ├── assets.js           # 外部 Texture cache / loading / error / dispose
+│       ├── resourceRegistry.js # Stage-shared Texture ownership
 │       ├── renderPipeline.js   # WebGLRenderer + EffectComposer ownership
 │       ├── resize.js           # viewport / camera resize lifecycle
 │       └── projectPicker.js    # project raycast / hover / click lifecycle
@@ -175,6 +177,10 @@ Registry 條目：
 - `update(group, t, ctx, frame)` 的 `frame` 由 Stage 的單一 clock 提供
   `{ progress, elapsed, delta }`。場景不要各自呼叫 `performance.now()`；這讓動畫能被
   暫停、測試與未來的 visibility lifecycle 一起控制。前三個參數維持原 contract。
+- `ctx.assets` 是 Stage-level AssetRegistry；外部 Texture 應使用
+  `ctx.assets.loadTexture('textures/...')`，同 URL 會去重並依 Vite `BASE_URL` 解析。
+  lazy scene 卸載不釋放共享資產，整個 Stage 卸載時才統一清理。場景程序化建立的
+  CanvasTexture 仍由該 scene 的 disposer 負責。
 
 ### 7. lights（燈光氛圍）
 

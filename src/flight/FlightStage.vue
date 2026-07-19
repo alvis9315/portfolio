@@ -10,6 +10,7 @@ import { disposeMaterialCaches } from './stage/materials.js'
 import { createProjectPicker } from './stage/projectPicker.js'
 import { createRenderPipeline } from './stage/renderPipeline.js'
 import { createStageResize } from './stage/resize.js'
+import { createAssetRegistry } from './stage/assets.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -35,7 +36,7 @@ const emit = defineEmits(['select'])
 
 const canvas = ref(null)
 let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, nightEnv, sky
-let pipeline, resizeController, projectPicker
+let pipeline, resizeController, projectPicker, assets, sceneContext
 const lookTarget = new THREE.Vector3()
 const clock = new THREE.Clock()
 // 每 frame 重用同一個物件，避免 scene update 為時間資訊產生短命 allocation。
@@ -57,6 +58,8 @@ onMounted(() => {
     pixelRatio: Math.min(window.devicePixelRatio, 2),
   })
   renderer = pipeline.renderer
+  assets = createAssetRegistry()
+  sceneContext = { ...props.context, assets }
 
   cleanupLights = (lightingPresets[props.lighting] || lightingPresets.dusk)(scene)
   // 夜景環境貼圖：玻璃鏡面大樓的反射來源（scene.environment 自動套到所有 PBR 材質）
@@ -103,7 +106,7 @@ onMounted(() => {
     frame.progress = t
     frame.delta = clock.getDelta()
     frame.elapsed = clock.elapsedTime
-    manager.update(t, props.context, frame)
+    manager.update(t, sceneContext, frame)
     sky.update(t, scene.fog, frame)
     // 第二幕離場後完整保留一段桃金暖陽；第三幕後半才混回現有晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
@@ -151,6 +154,7 @@ onMounted(() => {
       flightDebug.dispose()
     }
     manager.destroy()
+    assets.dispose()
     disposeMaterialCaches()
     cleanupLights?.()
     if (sky) {

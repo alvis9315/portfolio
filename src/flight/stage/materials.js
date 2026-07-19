@@ -1,4 +1,9 @@
 import * as THREE from 'three'
+import {
+  isStageTexture,
+  registerStageTexture,
+  releaseStageTexture,
+} from './resourceRegistry.js'
 
 /**
  * 材質層：palette token + 三個等級的材質 preset。
@@ -46,7 +51,7 @@ export const palette = {
 const sharedTextureCaches = new Set()
 const cacheTexture = (texture) => {
   sharedTextureCaches.add(texture)
-  return texture
+  return registerStageTexture(texture)
 }
 
 /** 低成本平光材質（低多邊形風格的主力） */
@@ -439,7 +444,7 @@ export function disposeGroup(root) {
   // Reflector.dispose() 會額外清除內部 WebGLRenderTarget；單獨 material.dispose() 不會。
   objectDisposers.forEach((object) => object.dispose())
   textures.forEach((texture) => {
-    if (!sharedTextureCaches.has(texture)) texture.dispose()
+    if (!isStageTexture(texture)) texture.dispose()
   })
   geometries.forEach((geometry) => geometry.dispose())
   materials.forEach((material) => material.dispose())
@@ -447,7 +452,7 @@ export function disposeGroup(root) {
 
 /** FlightStage 整體卸載時釋放跨 lazy scene 共用的 CanvasTexture cache。 */
 export function disposeMaterialCaches() {
-  sharedTextureCaches.forEach((texture) => texture.dispose())
+  sharedTextureCaches.forEach((texture) => releaseStageTexture(texture))
   sharedTextureCaches.clear()
   galvanizedMap = null
   monitorScreenMap = null

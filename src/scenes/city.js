@@ -88,6 +88,8 @@ export function buildCity(ctx = {}) {
   const g = new THREE.Group()
   const B = island(g, 34, 26, 60, -2, -30)
   const rnd = seededRandom(7)
+  const fallbackLoader = ctx.assets ? null : new THREE.TextureLoader()
+  const loadTexture = (path) => ctx.assets?.loadTexture(path) || fallbackLoader.load(`/${path}`)
 
   /* 地面街景（Alvis 選案：人行道＋馬路，不是蓋滿樓）：
    * 柏油鋪滿島面；hero 與看板樓之間那條窄巷就是「馬路」，兩側人行道，
@@ -103,9 +105,8 @@ export function buildCity(ctx = {}) {
   // 月亮：掛在城市上空，冷色月光映照大樓（DirectionalLight）＋bloom 光暈
   {
     // NASA LRO CGI Moon Kit：真實球面反照率＋LOLA 高度圖，不再程序化亂畫坑洞。
-    const loader = new THREE.TextureLoader()
-    const moonTex = loader.load('/textures/moon-color-nasa.jpg')
-    const moonBump = loader.load('/textures/moon-height-nasa.jpg')
+    const moonTex = loadTexture('textures/moon-color-nasa.jpg')
+    const moonBump = loadTexture('textures/moon-height-nasa.jpg')
     moonTex.colorSpace = THREE.SRGBColorSpace
     const moon = new THREE.Mesh(
       new THREE.SphereGeometry(2.4, 96, 64),
@@ -280,7 +281,7 @@ export function buildCity(ctx = {}) {
   // 戶外看板背架多為鍍鋅鋼：銀灰、偏霧面，不是黑色烤漆。
   const frameMat = galvanizedSteel(0xa8adb1)
   const backMat = galvanizedSteel(0x858b90, { roughness: 0.62, metalness: 0.58 })
-  const billboardTex = new THREE.TextureLoader().load('/textures/system-billboard.png')
+  const billboardTex = loadTexture('textures/system-billboard.png')
   billboardTex.colorSpace = THREE.SRGBColorSpace
   billboardTex.anisotropy = 8
   // 主要觀看方式是 hero 玻璃反射；先水平鏡像，經 Reflector 再翻一次後文字才可讀。
