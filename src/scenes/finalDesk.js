@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, palette, standard } from '../flight/stage/materials.js'
+import { journeyTimeline } from '../journey/timeline.js'
 
 function labelMaterial(title, subtitle) {
   const c = document.createElement('canvas'); c.width = 768; c.height = 432
@@ -79,7 +80,8 @@ export function buildFinalDesk() {
 }
 
 export function updateFinalDesk(group, t) {
-  group.visible = t >= 0.86
+  const [visibleFrom, visibleTo] = journeyTimeline.scenes.finalDesk.visible
+  group.visible = t >= visibleFrom && t <= visibleTo
   const items = group.userData.artifacts || []
   items.forEach((item, i) => {
     const k = THREE.MathUtils.smoothstep(t, 0.875 + i * 0.018, 0.905 + i * 0.018)

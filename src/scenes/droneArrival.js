@@ -1,14 +1,18 @@
 import * as THREE from 'three'
+import {
+  DRONE_ARRIVAL_RANGE,
+  DRONE_FLIGHT_RANGE,
+  DRONE_REVEAL_RANGE,
+} from '../journey/timeline.js'
+
+export { DRONE_ARRIVAL_RANGE, DRONE_FLIGHT_RANGE, DRONE_REVEAL_RANGE } from '../journey/timeline.js'
 
 /**
  * 第二幕 → 第三幕的同一台主角無人機。
  * 鏡頭與機體共用同一組具名節點，避免兩邊各自調整後失去追隨關係。
  */
-export const DRONE_ARRIVAL_RANGE = [0.4, 0.5]
-
 // 第二幕離場、玻璃大樓即將退出畫面時，才讓機體從畫面下方升起；
 // 終點與正式追隨路徑的起點完全相同，因此不會憑空出現或跳位。
-export const DRONE_REVEAL_RANGE = [0.368, DRONE_ARRIVAL_RANGE[0]]
 
 // drone-city 浮島的 local space。終點就是原本左下角固定無人機的位置。
 export const DRONE_ARRIVAL_LOCAL_PATH = [
@@ -33,7 +37,6 @@ export const DRONE_REVEAL_KEYS = [
   { t: DRONE_ARRIVAL_RANGE[0], position: DRONE_ARRIVAL_LOCAL_PATH[0] },
 ]
 
-export const DRONE_FLIGHT_RANGE = [DRONE_REVEAL_RANGE[0], DRONE_ARRIVAL_RANGE[1]]
 export const DRONE_CITY_ORIGIN = new THREE.Vector3(122, -1.5, -78)
 
 // 每個控制點都綁定真實 global progress，特別是 0.40 必須精確落在

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
+import { journeyTimeline } from '../journey/timeline.js'
 import { glass, glassFacade, glassGridOverlay, litWindow, flat, standard, emissive, galvanizedSteel, box, island, palette, seededRandom } from '../flight/stage/materials.js'
 
 /**
@@ -330,7 +331,8 @@ export function buildCity(ctx = {}) {
 
 /** 城市可提前 build 預載，但在書桌 shot 結束前整組保持不可見，避免月球／樓群穿幫。 */
 export function updateCity(group, t) {
-  group.visible = t >= 0.16 && t <= 0.42
+  const [visibleFrom, visibleTo] = journeyTimeline.scenes.city.visible
+  group.visible = t >= visibleFrom && t <= visibleTo
   // 桌面仍占畫面時絕不顯示月球；接近城市 establishing shot 才出現。
   if (group.userData.cityMoon) group.userData.cityMoon.visible = t >= 0.2 && t <= 0.4
   if (group.userData.cityMoonHalo) group.userData.cityMoonHalo.visible = t >= 0.2 && t <= 0.4

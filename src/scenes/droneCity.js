@@ -3,8 +3,9 @@ import { box, emissive, flat, focus, island, seededRandom, standard } from '../f
 import {
   DRONE_ARRIVAL_RANGE,
   DRONE_REVEAL_RANGE,
-  sampleDroneFlight,
-} from './droneArrival.js'
+  journeyTimeline,
+} from '../journey/timeline.js'
+import { sampleDroneFlight } from './droneArrival.js'
 
 const smoothstep = (edge0, edge1, value) => {
   const t = THREE.MathUtils.clamp((value - edge0) / Math.max(edge1 - edge0, 1e-6), 0, 1)
@@ -143,7 +144,8 @@ export function buildDroneCity() {
 }
 
 export function updateDroneCity(group, t) {
-  group.visible = t >= DRONE_REVEAL_RANGE[0] && t <= 0.59
+  const [visibleFrom, visibleTo] = journeyTimeline.scenes.droneCity.visible
+  group.visible = t >= visibleFrom && t <= visibleTo
   const time = performance.now() * 0.001
   for (const drone of group.userData.drones || []) {
     if (drone.userData.arrival) {

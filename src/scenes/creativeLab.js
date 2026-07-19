@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, standard } from '../flight/stage/materials.js'
+import { journeyTimeline } from '../journey/timeline.js'
 
 const tube = (parent, points, radius, mat) => {
   const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)))
@@ -105,6 +106,7 @@ export function buildCreativeLab() {
 }
 
 export function updateCreativeLab(group, t) {
-  group.visible = t >= 0.7 && t <= 0.88
+  const [visibleFrom, visibleTo] = journeyTimeline.scenes.creativeLab.visible
+  group.visible = t >= visibleFrom && t <= visibleTo
   if (group.userData.figure) group.userData.figure.rotation.y = Math.sin(performance.now() * 0.00045) * 0.08
 }

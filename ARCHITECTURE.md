@@ -12,6 +12,8 @@ scroll 位置 → t (0~1) → camera 的 { position, lookAt } → render
 
 ```
 src/
+├── journey/
+│   └── timeline.js             # shot / scene / caption / UI progress 區間唯一來源
 ├── flight/                     # 特效核心（可獨立抽成 package 或 skill reference）
 │   ├── useScrollFlight.js      # 驅動層：scroll → damped progress (Vue composable)
 │   ├── easing.js               # 鏡頭變速曲線
@@ -49,6 +51,18 @@ useScrollFlight ──t──→ FlightStage        FlightCaption × N
 ---
 
 ## 各模組使用方法
+
+### 0. journey timeline（敘事時間軸）
+
+`src/journey/timeline.js` 是所有 progress 區間的唯一來源，分為：
+
+- `shots`：鏡頭實際移動區間，區間間 gap 仍代表 hold。
+- `scenes.*.load`：lazy scene 建構／卸載範圍。
+- `scenes.*.visible`：scene 已預載但何時真正出鏡。
+- `captions` / `ui`：DOM overlay 顯示區間。
+
+調整一幕時先在這裡確認所有受影響區間；場景與內容檔不可再 hardcode 同一組
+progress 邊界。Camera 座標、easing 與 scene content 仍留在各自原本的模組。
 
 ### 1. useScrollFlight（驅動層）
 

@@ -11,13 +11,13 @@ import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
 import {
-  DRONE_ARRIVAL_RANGE,
   droneFirstPersonShot,
 } from './scenes/droneArrival.js'
 import { buildCommandRoom, updateCommandRoom } from './scenes/commandRoom.js'
 import { buildCreativeLab, updateCreativeLab } from './scenes/creativeLab.js'
 import { buildFinalDesk, updateFinalDesk } from './scenes/finalDesk.js'
 import { site } from './content/site-content.js'
+import { journeyTimeline } from './journey/timeline.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
 const ctl = useScrollFlight({ damping: 0.08 })
@@ -29,7 +29,7 @@ const SCROLL_LENGTH_VH = 1100
  * 城市場景的可見 t 區間 = flyThrough 段，卡片離開此區間自動淡出。 */
 const activeProject = ref(null)
 const railOpen = ref(false)
-const CITY_RANGE = [0.16, 0.38]
+const CITY_RANGE = journeyTimeline.ui.projectCard
 
 const navSections = computed(() => site.sections.slice(1))
 const activeSectionId = computed(() => {
@@ -69,13 +69,13 @@ const flight = composeShots([
   {
     // 招牌 dolly-in 直逼螢幕，收尾減速「停穩」（螢幕也在這段漸亮）
     shot: dollyIn({ from: [-20, 11, 30], to: SEAM_1.pos, target: SEAM_1.look }),
-    range: [0.0, 0.14],
+    range: journeyTimeline.shots.workbenchIntro,
     easing: easeOutCubic,
   },
   {
     // 書桌 → 城市天際線：直線滑移（純 lerp 最順，無樣條 overshoot）
     shot: line({ fromPos: SEAM_1.pos, toPos: CITY_SKYLINE.pos, fromLook: SEAM_1.look, toLook: CITY_SKYLINE.look }),
-    range: [0.17, 0.23],
+    range: journeyTimeline.shots.workbenchToCity,
     easing: easeInOutSine,
   },
   {
@@ -85,13 +85,13 @@ const flight = composeShots([
       look: [CITY_SKYLINE.look, [68, 10.5, -23], [62, 11, -28], [60.5, 10.8, -29.5], [60.3, 9.2, -31.5], [60.2, 8, -33.4], CITY_GLASS.look],
       tension: 0.32,
     }),
-    range: [0.24, 0.32],
+    range: journeyTimeline.shots.cityFlyThrough,
     easing: easeInOutSine,
   },
   {
     // 玻璃反射在 0.32 抵達後保留較長 hold，讓觀眾能看清看板、反射與彩蛋再離場。
     shot: line({ fromPos: CITY_GLASS.pos, toPos: SEAM_2.pos, fromLook: CITY_GLASS.look, toLook: SEAM_2.look }),
-    range: [0.37, 0.4],
+    range: journeyTimeline.shots.cityDeparture,
     easing: easeInOutSine,
   },
   {
@@ -103,21 +103,21 @@ const flight = composeShots([
       toPos: DRONE_VIEW.pos,
       toLook: DRONE_VIEW.look,
     }),
-    range: DRONE_ARRIVAL_RANGE,
+    range: journeyTimeline.shots.droneArrival,
   },
   {
     shot: line({ fromPos: DRONE_VIEW.pos, toPos: COMMAND_VIEW.pos, fromLook: DRONE_VIEW.look, toLook: COMMAND_VIEW.look }),
     // 第三幕在 0.50 抵達後留出約一秒的 scroll hold，才進入第四幕。
-    range: [0.53, 0.56], easing: easeInOutCubic,
+    range: journeyTimeline.shots.droneToCommand, easing: easeInOutCubic,
   },
   {
     // 戰情室不只停在遠景：推近監控牆，再落到中央指揮桌。
     shot: line({ fromPos: COMMAND_VIEW.pos, toPos: COMMAND_SCREEN.pos, fromLook: COMMAND_VIEW.look, toLook: COMMAND_SCREEN.look }),
-    range: [0.58, 0.61], easing: easeOutCubic,
+    range: journeyTimeline.shots.commandScreen, easing: easeOutCubic,
   },
   {
     shot: line({ fromPos: COMMAND_SCREEN.pos, toPos: COMMAND_DESK.pos, fromLook: COMMAND_SCREEN.look, toLook: COMMAND_DESK.look }),
-    range: [0.63, 0.66], easing: easeInOutSine,
+    range: journeyTimeline.shots.commandDesk, easing: easeInOutSine,
   },
   {
     // 沿資料方向飛進 AI Lab 左側，而不是直接換成下一張遠景。
@@ -125,40 +125,40 @@ const flight = composeShots([
       path: [COMMAND_DESK.pos, [171, 7, -118], [179, 8, -126], LAB_DATA.pos],
       look: [COMMAND_DESK.look, [170, 4, -124], [179, 4, -136], LAB_DATA.look],
     }),
-    range: [0.68, 0.72], easing: easeInOutCubic,
+    range: journeyTimeline.shots.commandToLab, easing: easeInOutCubic,
   },
   {
     // 從 RAG 文件流橫移到 FigureShot 攝影棚與猛毒剪影。
     shot: line({ fromPos: LAB_DATA.pos, toPos: LAB_STUDIO.pos, fromLook: LAB_DATA.look, toLook: LAB_STUDIO.look }),
-    range: [0.74, 0.8], easing: easeInOutSine,
+    range: journeyTimeline.shots.labStudio, easing: easeInOutSine,
   },
   {
     shot: flyThrough({
       path: [LAB_STUDIO.pos, [211, 8, -151], [220, 7, -162], FINAL_DETAIL.pos],
       look: [LAB_STUDIO.look, [205, 3, -151], [220, 3, -169], FINAL_DETAIL.look],
     }),
-    range: [0.82, 0.87], easing: easeInOutCubic,
+    range: journeyTimeline.shots.labToFinal, easing: easeInOutCubic,
   },
   {
     // 先沿桌上歷程物件推進，再靠近姓名卡。
     shot: line({ fromPos: FINAL_DETAIL.pos, toPos: FINAL_SCREEN.pos, fromLook: FINAL_DETAIL.look, toLook: FINAL_SCREEN.look }),
-    range: [0.89, 0.93], easing: easeOutCubic,
+    range: journeyTimeline.shots.finalScreen, easing: easeOutCubic,
   },
   {
     // 回到升級桌面後安靜拉遠，讓物件依旅程順序亮起。
     shot: line({ fromPos: FINAL_SCREEN.pos, toPos: FINAL_WIDE.pos, fromLook: FINAL_SCREEN.look, toLook: FINAL_WIDE.look }),
-    range: [0.95, 1.0], easing: easeOutCubic,
+    range: journeyTimeline.shots.finalWide, easing: easeOutCubic,
   },
 ])
 
 /* ── 場景 registry（lazy 建構）────────────────────────── */
 const scenes = [
-  { id: 'workbench', range: [0.0, 0.19], build: () => buildWorkbench(), update: updateWorkbench },
-  { id: 'city', range: [0.15, 0.42], build: (ctx) => buildCity(ctx), update: updateCity },
-  { id: 'drone-city', range: [0.38, 0.59], build: () => buildDroneCity(), update: updateDroneCity },
-  { id: 'command-room', range: [0.54, 0.73], build: () => buildCommandRoom(), update: updateCommandRoom },
-  { id: 'creative-lab', range: [0.69, 0.88], build: () => buildCreativeLab(), update: updateCreativeLab },
-  { id: 'final-desk', range: [0.85, 1.0], build: () => buildFinalDesk(), update: updateFinalDesk },
+  { id: 'workbench', range: journeyTimeline.scenes.workbench.load, build: () => buildWorkbench(), update: updateWorkbench },
+  { id: 'city', range: journeyTimeline.scenes.city.load, build: (ctx) => buildCity(ctx), update: updateCity },
+  { id: 'drone-city', range: journeyTimeline.scenes.droneCity.load, build: () => buildDroneCity(), update: updateDroneCity },
+  { id: 'command-room', range: journeyTimeline.scenes.commandRoom.load, build: () => buildCommandRoom(), update: updateCommandRoom },
+  { id: 'creative-lab', range: journeyTimeline.scenes.creativeLab.load, build: () => buildCreativeLab(), update: updateCreativeLab },
+  { id: 'final-desk', range: journeyTimeline.scenes.finalDesk.load, build: () => buildFinalDesk(), update: updateFinalDesk },
 ]
 </script>
 

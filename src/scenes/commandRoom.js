@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { box, emissive, flat, focus, island, standard } from '../flight/stage/materials.js'
+import { journeyTimeline } from '../journey/timeline.js'
 
 function makeDashboardMaterial() {
   const c = document.createElement('canvas')
@@ -73,6 +74,7 @@ export function buildCommandRoom() {
 }
 
 export function updateCommandRoom(group, t) {
-  group.visible = t >= 0.55 && t <= 0.73
+  const [visibleFrom, visibleTo] = journeyTimeline.scenes.commandRoom.visible
+  group.visible = t >= visibleFrom && t <= visibleTo
   if (group.userData.statusLight) group.userData.statusLight.intensity = 0.82 + Math.sin(performance.now() * 0.002) * 0.12
 }
