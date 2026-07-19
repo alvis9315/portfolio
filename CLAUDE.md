@@ -5,7 +5,8 @@
 ## 專案背景
 
 這是 Alvis 的個人 portfolio 網站，核心特效是「scroll 驅動的 3D 鏡頭飛行」：
-使用者捲動頁面時，一顆鏡頭無剪接地飛越多個 low-poly 場景（工作桌 → 城市 → 山），
+使用者捲動頁面時，一顆鏡頭無剪接地飛越六個 low-poly 場景（工作桌 → 城市 →
+無人機系統城市 → 指揮室 → AI／FigureShot Lab → 升級桌面），
 原理同 Apple 的 scroll-through 產品頁，但用 Three.js 即時渲染，**不使用任何影片素材**。
 技術棧：Vue 3 + Vite + Three.js，部署目標 GitHub Pages（vite base 已設 `'./'`）。
 
@@ -45,6 +46,7 @@ npm run dev        # 先跑起來，實際捲動一次體驗完整飛行
 | 驅動層 | `src/flight/useScrollFlight.js` | scroll → damped progress，全站唯一 t 來源 |
 | Shot 層 | `src/flight/shots.js` | 五種運鏡 primitive，統一 contract `getPose(t, pos, look)` |
 | 編排層 | `src/flight/composeShots.js` | 串接 shots、分配 range、seam 驗證 |
+| 旅程配置 | `src/journey/flight.js` + `timeline.js` | 正式鏡位與全站 progress 區間 |
 | 舞台層 | `src/flight/FlightStage.vue` + `stage/` | renderer、燈光 preset、lazy 場景管理 |
 | 場景 | `src/scenes/*.js` | 純函數 `build(ctx) → Group` |
 | 內容 | `src/content/site-content.js` | 文案與作品資料的唯一來源 |
@@ -53,42 +55,33 @@ npm run dev        # 先跑起來，實際捲動一次體驗完整飛行
 ## 必須遵守的專案慣例
 
 1. **Seam rule**：相鄰兩個 shot，前者 t=1 的 pose 必須等於後者 t=0 的 pose。
-   接縫座標一律宣告成常數共用（見 `App.vue` 的 `SEAM_1`/`SEAM_2`）。
-   改完任何路徑，開 dev mode 看 console 有無 `[flight] seam gap` 警告。
+   接縫座標一律集中於 `src/journey/flight.js` 的 `journeyViews`。
+   改完任何路徑，執行 `npm test` 並看 dev console 有無 `[flight] seam gap` 警告。
 2. **Vue ref 陷阱**：`useScrollFlight()` 的回傳值不要解構成頂層變數，
    統一 `const ctl = useScrollFlight(...)` 再以 `ctl.progress` 傳遞——
    template 會自動 unwrap 頂層 ref，傳進子元件會變成不會更新的死數字。
 3. **材質集中管理**：場景檔內禁止直接 `new THREE.Mesh*Material`，
    一律從 `stage/materials.js` 取用（palette token + `flat()`/`glow()`/`standard()`）。
 4. **場景是純函數**：`build(ctx)` 只回傳 Group，不碰 scene、不碰 camera、
-   不留全域狀態；dispose 由 `lazyScenes.js` 統一處理。
+   不留全域狀態；scene-owned 資源由 `lazyScenes.js` 處理，Stage-shared Texture
+   由 `ctx.assets` 管理到整個 Stage 卸載。
 5. **內容與程式分離**：文案、作品清單只改 `site-content.js`，
    UI 與 3D 都是吃這份資料 render 的。
 6. **UI 與 3D 解耦**：新 UI 元件一律疊在 `FlightStage` 外面，
    透過 computed 綁 `ctl.progress` 的區間，不要把 DOM 塞進舞台元件。
 7. 調鏡頭節奏的順序：先 `linear` 調對路徑座標 → 確認 seam 無警告 →
-   最後才加 easing。節奏太慢/太快改 App.vue 的捲動空間高度（640vh），
+   最後才加 easing。節奏太慢/太快改 App.vue 的捲動空間高度（目前 1100vh），
    不要動 damping。
 
 ## 實作任務（依優先序）
 
-依 ARCHITECTURE.md 的 roadmap 執行，每完成一項先跑 `npm run build` 驗證再往下：
-
-1. **Dev 路徑視覺化工具**：dev mode 下用 `THREE.Line` 把 flight path 與
-   look path 畫出來（可用 URL query `?debug` 切換）。先做這個，後面調路徑快十倍。
-2. **Raycaster 互動**:城市地標樓 hover 高亮 + click 顯示作品資訊卡。
-   資料已在每棟樓的 `userData.project`；資訊卡是 UI 層元件，走慣例 6。
-3. **真實內容填充**：與 Alvis 確認 `site-content.js` 的正式文案與作品清單
-   （目前是 placeholder；作品欄位可自行擴充，如 `description`、`stack`、`url`）。
-4. **材質升級第一波**：焦點物件（螢幕、地標樓）從 `flat()` 換 `standard()`，
-   其餘維持 low-poly 平光，對比出焦點。
-5. **手機體驗調校**：驗證 640vh 在行動裝置的捲動節奏、caption 排版、
-   以及 devicePixelRatio 已 cap 在 2 的效能表現。
-6. **（後續）GLTF 場景升級與音效**：介面已預留，見 ARCHITECTURE.md。
+依 ARCHITECTURE.md 的 roadmap 執行。Raycaster、debug path、焦點 PBR、手機渲染
+預算、資源清理與自動測試都已完成。目前依序是：補正式內容／連結、依截圖精修
+視覺、確認正式無人機模型後才評估 GLTF 導入、最後設計 async scene loading 拆 bundle。
 
 ## 驗收標準
 
-- `npm run build` 通過，無 seam 警告
+- `npm test` 與 `npm run build` 通過，無 seam 警告
 - 從頭捲到尾：無鏡頭跳動、無場景 pop-in（必要時調 `lazyScenes` 的 margin）
 - 手機（375px 寬）可正常體驗完整飛行
 - `prefers-reduced-motion` 下功能完整（平滑自動關閉，已內建，勿破壞）

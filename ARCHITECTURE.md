@@ -13,7 +13,8 @@ scroll 位置 → t (0~1) → camera 的 { position, lookAt } → render
 ```
 src/
 ├── journey/
-│   └── timeline.js             # shot / scene / caption / UI progress 區間唯一來源
+│   ├── timeline.js             # shot / scene / caption / UI progress 區間唯一來源
+│   └── flight.js               # 六幕正式鏡頭座標與 shot 編排
 ├── flight/                     # 特效核心（可獨立抽成 package 或 skill reference）
 │   ├── useScrollFlight.js      # 驅動層：scroll → damped progress (Vue composable)
 │   ├── easing.js               # 鏡頭變速曲線
@@ -31,11 +32,18 @@ src/
 │       ├── resize.js           # viewport / camera resize lifecycle
 │       ├── performance.js      # desktop / mobile 渲染預算
 │       ├── visibility.js       # 背景分頁 RAF pause / resume
-│       └── projectPicker.js    # project raycast / hover / click lifecycle
+│       ├── projectPicker.js    # project raycast / hover / click lifecycle
+│       ├── environment.js      # PMREM 夜景環境貼圖
+│       ├── sky.js              # 單一天空 shader 與時間色彩
+│       └── debugPath.js        # dev-only flight / look 路徑視覺化
 ├── scenes/                     # 場景模組：純函數 build(ctx) → Group
 │   ├── workbench.js            # 01 工作桌（About）
 │   ├── city.js                 # 02 城市（Projects，data-driven）
-│   └── mountains.js            # 03 山與月（Contact）
+│   ├── droneCity.js            # 03 無人機系統城市
+│   ├── droneArrival.js         # 02 → 03 共用機體／鏡頭路徑
+│   ├── commandRoom.js          # 04 交付指揮室
+│   ├── creativeLab.js          # 05 AI × FigureShot Lab
+│   └── finalDesk.js            # 06 升級桌面收束
 ├── content/
 │   └── site-content.js         # 內容層：文案 + 作品資料，唯一的內容來源
 └── App.vue                     # 組裝根：把四層接在一起
@@ -53,7 +61,8 @@ useScrollFlight ──t──→ FlightStage        FlightCaption × N
                        └→ renderer.render()
 ```
 
-`t` 是唯一的同步機制。沒有事件、沒有 store、沒有元件間通訊。
+`t` 是鏡頭、場景與 UI 的唯一時間同步機制；場景選取另以單向 `select` event
+把 Raycaster 結果送到 UI，不建立第二套動畫狀態。
 
 ---
 
@@ -130,10 +139,10 @@ const flight = composeShots([
 - `range` 是全域 t 區間。**區間之間的 gap = 鏡頭 hold**（停在上一段結尾），
   這是刻意的設計：hold 的時候正好讓使用者讀字幕。
 - **Seam rule（最重要的一條）**：相鄰 shot，前者 `t=1` 的 pose 必須等於
-  後者 `t=0` 的 pose。實務做法是把接縫座標宣告成常數（見 App.vue 的
-  `SEAM_1` / `SEAM_2`），兩個 shot 共用。
+  後者 `t=0` 的 pose。實務做法是把接縫座標集中在 `journey/flight.js` 的
+  `journeyViews`，由相鄰 shot 共用。
 - `flight.validateSeams()` 會回傳所有不連續的接縫；FlightStage 在
-  dev mode 自動呼叫並在 console 警告。改完路徑先看 console。
+  dev mode 自動呼叫並在 console 警告；`npm test` 也會對正式 flight 做回歸檢查。
 
 ### 4. easing（鏡頭變速）
 
@@ -178,7 +187,7 @@ Registry 條目：
   這讓每個場景可以獨立開發與測試。
 - `update(group, t, ctx, frame)` 的 `frame` 由 Stage 的單一 clock 提供
   `{ progress, elapsed, delta }`。場景不要各自呼叫 `performance.now()`；這讓動畫能被
-  暫停、測試與未來的 visibility lifecycle 一起控制。前三個參數維持原 contract。
+  暫停、測試並與 visibility lifecycle 一起控制。前三個參數維持原 contract。
 - `ctx.assets` 是 Stage-level AssetRegistry；外部 Texture 應使用
   `ctx.assets.loadTexture('textures/...')`，同 URL 會去重並依 Vite `BASE_URL` 解析。
   lazy scene 卸載不釋放共享資產，整個 Stage 卸載時才統一清理。場景程序化建立的
@@ -279,7 +288,7 @@ Shot 是零件，配置才是敘事。本節是給「編排飛行的人」的指
   過場段用 easeOutQuint 會有莫名其妙的急煞。
 - **damping**（useScrollFlight）：0.06 電影感最重但最不跟手，0.12 反之。
   全站只有一個值，不要為單一段落調它。
-- **捲動空間高度**（App.vue 的 640vh）：整體節奏的總開關。覺得「整段都太趕」
+- **捲動空間高度**（App.vue 的 1100vh）：整體節奏的總開關。覺得「整段都太趕」
   改這裡，覺得「只有某段太趕」改該段 range。
 
 ### 反模式（配置後會出事的組合）
@@ -295,17 +304,26 @@ Shot 是零件，配置才是敘事。本節是給「編排飛行的人」的指
 ```bash
 npm install
 npm run dev      # 改 shots / scenes / content 都有 HMR
+npm test         # flight / drone / SceneManager / resource lifecycle 回歸測試
 npm run build    # 產出 dist/，可直接丟 GitHub Pages（base 已設 './'）
 ```
 
 調鏡頭的順序建議：先用 `linear` 把路徑座標調對 → 開 console 確認
 seam 無警告 → 最後才加 easing 調節奏。節奏太快就拉長 App.vue 裡的
-捲動空間高度（640vh → 800vh），不要去改 damping。
+捲動空間高度，不要去改 damping。
+
+目前測試分工：
+
+- `tests/flight.test.js`：正式六幕 seam、hold 與第三幕標題／第四幕邊界。
+- `tests/drone-arrival.test.js`：由下往上 reveal、路徑接點與半機身追隨距離。
+- `tests/scene-manager.test.js`：lazy build/update/dispose/destroy lifecycle。
+- `tests/resources.test.js`：GPU ownership、手機渲染預算與 visibility listener。
 
 ## 已知的擴充關卡（roadmap）
 
-1. **Raycaster 互動**：城市地標樓 hover 顯示作品資訊卡（資料已備妥於 userData）
-2. **材質升級**：焦點物件 flat → standard → 貼圖（見上方升級路徑）
-3. **GLTF 場景**：把 workbench 換成 Blender 精modeling 版
-4. **音效**：progress 跨越 range 邊界時觸發 whoosh（同樣訂閱 t，不需新機制）
-5. **路徑視覺化 debug 工具**：dev mode 用 `THREE.Line` 把 flight path 畫出來，調路徑快十倍
+1. **首屏 bundle 拆分**：目前 production JS 約 656 KB；場景 registry 若改 dynamic
+   import，必須先設計 async build 與取消載入，不能在現行同步 manager 內硬塞。
+2. **GLTF 資產階段**：確認正式模型後，擴充 AssetRegistry 到 GLTF／DRACO；不要先為
+   技術名稱重寫既有程序化場景。
+3. **真實內容與連結**：補 GitHub、LinkedIn、Email／Contact、View All Projects。
+4. **音效**：progress 跨越 range 邊界時觸發 whoosh（同樣訂閱 t，不需新機制）。

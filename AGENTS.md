@@ -9,6 +9,7 @@
 ```bash
 npm install
 npm run dev    # 先跑起來，實際從頭捲到尾體驗一次完整飛行
+npm test       # 鏡頭／場景／資源 lifecycle 回歸測試
 npm run build  # 每完成一項任務必跑，須通過且 console 無 seam 警告
 ```
 
@@ -28,7 +29,7 @@ npm run build  # 每完成一項任務必跑，須通過且 console 無 seam 警
 - 一個任務由一個模型從頭做到尾，完成即 commit；接手一律從乾淨 commit 開始。
 - 「必須遵守的專案慣例」1-7 與驗收標準見 CLAUDE.md，全部適用；
   特別注意：材質一律走 `stage/materials.js`、場景是純函數、
-  UI 疊在 FlightStage 外、seam 座標用共用常數不得 hardcode。
+  UI 疊在 FlightStage 外、seam 座標集中於 `journey/flight.js` 的 `journeyViews`。
 
 ## 溝通慣例
 
