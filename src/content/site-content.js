@@ -29,7 +29,7 @@ export const site = {
       // 玻璃鏡頭在 t≈.32 停穩後才顯示，移動途中不遮住看板與城市。
       range: journeyTimeline.captions.projects,
       // 城市遠景左上方的天空留白：與第一幕錯開高度，也避開月球與建築輪廓。
-      position: { left: '6vw', top: '22vh', textAlign: 'left', maxWidth: '460px' },
+      position: { left: '8vw', top: '18vh', textAlign: 'left', maxWidth: '460px' },
       eyebrow: '02 — Systems',
       title: '打造會被使用的系統',
       body: '每一棟樓是一個 project。',
@@ -38,10 +38,11 @@ export const site = {
       id: 'drone-ops',
       // 無人機在 0.50 完成歸位後才顯示；0.53 第四幕起飛前淡出。
       range: journeyTimeline.captions.droneOps,
-      position: { right: '6vw', top: '18vh', textAlign: 'right', maxWidth: '560px' },
+      position: { right: '3.5vw', top: '13vh', textAlign: 'right', maxWidth: '560px' },
       eyebrow: '03 — Perspective',
       title: '在複雜系統中找到清楚航線',
       body: '從需求、架構到交付風險，以全端視角掌握脈絡，讓團隊知道現在在哪裡、下一步往哪裡走。',
+      bodyColor: '#42586d',
     },
     {
       id: 'delivery',

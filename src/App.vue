@@ -91,7 +91,7 @@ const scenes = [
   >
     <div class="eyebrow">{{ s.eyebrow }}</div>
     <h2>{{ s.title }}</h2>
-    <p>{{ s.body }}</p>
+    <p :style="s.bodyColor ? { color: s.bodyColor } : undefined">{{ s.body }}</p>
     <a v-if="s.link" class="caption-link" :href="s.link.url" target="_blank" rel="noopener noreferrer">
       {{ s.link.label }} ↗
     </a>

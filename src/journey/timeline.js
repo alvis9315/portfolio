@@ -44,14 +44,14 @@ export const journeyStations = Object.freeze({
     station('drone-overview', 0.5, 'drone-ops', 1000),
   ]),
   transitions: Object.freeze([
-    stationTransition(2600, [[0, 0], [1, 0.06]], 'easeInOutSine'),
-    stationTransition(2800, [[0, 0.06], [1, 0.14]], 'easeInOutSine'),
-    // 兩端的短 hold 用於字幕淡出與抵達 settle；實際跨城 line 約播放 4.1 秒。
-    stationTransition(5000, [[0, 0.14], [0.1, 0.17], [0.92, 0.23], [1, 0.24]]),
-    stationTransition(3200, [[0, 0.24], [1, 0.29]]),
-    stationTransition(2600, [[0, 0.29], [1, 0.32]]),
-    stationTransition(3200, [[0, 0.32], [0.15, 0.37], [0.55, 0.4], [1, 0.42]]),
-    stationTransition(2800, [[0, 0.42], [1, 0.5]]),
+    stationTransition(2200, [[0, 0], [1, 0.06]], 'easeInOutSine'),
+    stationTransition(2400, [[0, 0.06], [1, 0.14]], 'easeInOutSine'),
+    // 兩端的短 hold 用於字幕淡出與抵達 settle；實際跨城 line 約播放 3.5 秒。
+    stationTransition(4300, [[0, 0.14], [0.1, 0.17], [0.92, 0.23], [1, 0.24]]),
+    stationTransition(2800, [[0, 0.24], [1, 0.29]]),
+    stationTransition(2200, [[0, 0.29], [1, 0.32]]),
+    stationTransition(2800, [[0, 0.32], [0.15, 0.37], [0.55, 0.4], [1, 0.42]]),
+    stationTransition(2400, [[0, 0.42], [1, 0.5]]),
   ]),
 })
 
