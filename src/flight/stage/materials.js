@@ -41,6 +41,14 @@ export const palette = {
   spideyBlue: 0x2f6bff,
 }
 
+// 這些貼圖會跨 lazy scene 的卸載／重建週期共用。場景卸載時不能釋放，
+// 否則下一次 build 會拿到已 dispose 的 cache；整個 FlightStage 卸載時才統一清掉。
+const sharedTextureCaches = new Set()
+const cacheTexture = (texture) => {
+  sharedTextureCaches.add(texture)
+  return texture
+}
+
 /** 低成本平光材質（低多邊形風格的主力） */
 export const flat = (c) => new THREE.MeshLambertMaterial({ color: c })
 
@@ -91,7 +99,7 @@ export const galvanizedSteel = (c = 0xa4a9ad, opts = {}) => {
       }
       ctx.closePath(); ctx.fill()
     }
-    galvanizedMap = new THREE.CanvasTexture(canvas)
+    galvanizedMap = cacheTexture(new THREE.CanvasTexture(canvas))
     galvanizedMap.wrapS = galvanizedMap.wrapT = THREE.RepeatWrapping
     galvanizedMap.repeat.set(2, 2)
     galvanizedMap.colorSpace = THREE.SRGBColorSpace
@@ -191,7 +199,7 @@ export const monitorScreen = () => {
     glow.addColorStop(1, 'rgba(53,91,139,0)')
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, c.width, c.height)
-    monitorScreenMap = new THREE.CanvasTexture(c)
+    monitorScreenMap = cacheTexture(new THREE.CanvasTexture(c))
     monitorScreenMap.colorSpace = THREE.SRGBColorSpace
   }
   return emissive(0xffffff, 0, {
@@ -258,7 +266,7 @@ function makeFacadeMaps() {
     nctx.fillStyle = 'rgb(128,156,255)'; nctx.fillRect(0, p, 512, 2) // 下壁朝下
   }
   const tex = (c, srgb) => {
-    const t = new THREE.CanvasTexture(c)
+    const t = cacheTexture(new THREE.CanvasTexture(c))
     t.wrapS = t.wrapT = THREE.RepeatWrapping
     if (srgb) t.colorSpace = THREE.SRGBColorSpace
     return t
@@ -313,7 +321,7 @@ export const litWindow = (warm = true) => {
     base.addColorStop(1, 'rgba(255,255,255,0.015)')
     ctx.fillStyle = base
     ctx.fillRect(0, 0, 32, 64)
-    ceilTexCache = new THREE.CanvasTexture(c)
+    ceilTexCache = cacheTexture(new THREE.CanvasTexture(c))
   }
   return new THREE.MeshStandardMaterial({
     map: ceilTexCache,
@@ -384,15 +392,67 @@ export function island(parent, w, d, x, y, z, colors = {}) {
   return g
 }
 
-/** 釋放一整個 Group 的 geometry / material（lazy 卸載時用） */
+function collectTextureValue(value, textures) {
+  if (!value) return
+  if (value.isTexture) {
+    textures.add(value)
+    return
+  }
+  if (Array.isArray(value)) value.forEach((item) => collectTextureValue(item, textures))
+}
+
+function collectMaterialTextures(material, textures) {
+  // map / normalMap / roughnessMap / emissiveMap 等都是 material 的直接 property。
+  for (const value of Object.values(material)) collectTextureValue(value, textures)
+  // ShaderMaterial 的 sampler 會藏在 uniform.value，不會出現在一般 map property。
+  for (const uniform of Object.values(material.uniforms || {})) {
+    collectTextureValue(uniform?.value, textures)
+  }
+}
+
+/**
+ * 釋放一整個 Group 的 GPU 資源（lazy 卸載時用）。
+ * 除 geometry / material 外，也處理材質貼圖、shader sampler，以及 Reflector / Text
+ * 這類在 Object3D 本身提供 dispose() 的 addon。跨場景共用的 cache 留到 Stage 卸載。
+ */
 export function disposeGroup(root) {
+  const geometries = new Set()
+  const materials = new Set()
+  const textures = new Set()
+  const objectDisposers = new Set()
+
   root.traverse((o) => {
-    if (o.geometry) o.geometry.dispose()
+    if (typeof o.dispose === 'function') objectDisposers.add(o)
+    if (o.geometry) geometries.add(o.geometry)
     if (o.material) {
       const mats = Array.isArray(o.material) ? o.material : [o.material]
-      mats.forEach((m) => m.dispose())
+      // Reflector.dispose() 自己負責 material 與內部 render target；再走一般材質
+      // 路徑會重複 dispatch dispose，且把 render-target texture 當普通貼圖處理。
+      if (o.isReflector) return
+      mats.forEach((material) => {
+        materials.add(material)
+        collectMaterialTextures(material, textures)
+      })
     }
   })
+
+  // Reflector.dispose() 會額外清除內部 WebGLRenderTarget；單獨 material.dispose() 不會。
+  objectDisposers.forEach((object) => object.dispose())
+  textures.forEach((texture) => {
+    if (!sharedTextureCaches.has(texture)) texture.dispose()
+  })
+  geometries.forEach((geometry) => geometry.dispose())
+  materials.forEach((material) => material.dispose())
+}
+
+/** FlightStage 整體卸載時釋放跨 lazy scene 共用的 CanvasTexture cache。 */
+export function disposeMaterialCaches() {
+  sharedTextureCaches.forEach((texture) => texture.dispose())
+  sharedTextureCaches.clear()
+  galvanizedMap = null
+  monitorScreenMap = null
+  facadeMaps = null
+  ceilTexCache = null
 }
 
 /** 可重現的偽隨機（場景程序化生成用，seed 固定 → 每次 build 長一樣） */

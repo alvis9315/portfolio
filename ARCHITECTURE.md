@@ -148,7 +148,9 @@ Registry 條目：
 ```
 
 - `t` 進入 `range ± margin`（預設 0.12）時 build 並加入 scene，
-  離開後自動 dispose（geometry / material 全釋放）。
+  離開後自動 dispose（geometry / material / scene-owned texture，以及 Object3D
+  自訂 disposer，例如 Reflector 的 render target）。跨場景共用的材質貼圖 cache
+  會保留到整個 FlightStage 卸載才統一釋放。
 - 場景的 `range` 要比它「出鏡」的 shot range **寬一點**——鏡頭還在遠處
   就看得到下一個場景的輪廓，太窄會看到場景 pop 進畫面。
 - `build` 是純函數：回傳 Group、不碰 scene、不碰 camera。

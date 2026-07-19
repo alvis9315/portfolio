@@ -9,6 +9,7 @@ import { createSceneManager } from './stage/lazyScenes.js'
 import { createFlightDebug } from './stage/debugPath.js'
 import { createNightEnv } from './stage/environment.js'
 import { createSky } from './stage/sky.js'
+import { disposeMaterialCaches } from './stage/materials.js'
 
 /**
  * 舞台元件：唯一碰 Three.js renderer 的地方。
@@ -204,12 +205,17 @@ onMounted(() => {
       flightDebug.dispose()
     }
     manager.destroy()
+    disposeMaterialCaches()
     cleanupLights?.()
     if (sky) {
       scene.remove(sky.mesh)
       sky.dispose()
     }
+    scene.environment = null
     nightEnv?.dispose()
+    // EffectComposer.dispose() 只處理 composer 自己的 render targets；各 pass
+    // （尤其 UnrealBloomPass）仍要各自清除內部 render targets / materials。
+    composer.passes.forEach((pass) => pass.dispose?.())
     composer.dispose()
     renderer.dispose()
   })
