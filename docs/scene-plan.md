@@ -185,6 +185,25 @@
 - 第四、第五幕重新設計尚未定案：第四幕承接 Analyze／Build／Deliver 的真實案例視角；
   第五幕以相同全局方法呈現攝影、Illustrator、Photoshop 與適量 AI 創作流程。
 
+### 後續執行排程（依賴順序）
+
+1. **Station 實機節奏驗收**：Alvis 以日常觸控板與手機各完整走一次第二、三幕；只回報
+   哪一段過快／過慢，實作端只調四段 duration，不動既有構圖與 flight path。
+2. **補齊第二幕真實內容（等待 Alvis 資料）**：提供可公開的專案清單、每案的問題、角色、
+   關鍵貢獻、成果與連結；同時決定附圖 2 要承擔的敘事用途。
+3. **第二幕互動實作**：把專案資料綁到可辨識的大樓、補第一站點選提示、hover／focus／
+   touch 狀態與 ProjectCard；目前 Station driver 的卡片開啟鎖定 hook 已完成，屆時直接接線。
+4. **第四、第五幕資訊架構（等待 Alvis 資料）**：先完成 Analyze／Build／Deliver 的案例
+   分流，以及攝影、Illustrator、Photoshop、AI 的全局敘事，不先改 3D 場景。
+5. **第三幕 Hard Gate 與 Portal**：資訊架構定稿後實作 `SELECT A MISSION`、面板選擇、
+   正面拉近與數位通道；必須含 touch、keyboard、reduced-motion、返回與 rail 跳轉。
+6. **重做第四、第五幕**：依選定任務呈現不同但可共用的案例視角，再以創作流程收束個人
+   能力；避免在 Portal 尚未定稿時同時改鏡頭路徑。
+7. **無人機與正式資產決策**：先確認可用模型的外型、授權、polygon／texture 預算，再決定
+   是否導入 GLTF／DRACO；不為替換模型預先重寫現有 scene contract。
+8. **上線收尾**：補 GitHub、LinkedIn、Email／Contact、View All Projects，最後才處理
+   async scene loading／bundle 拆分與全裝置效能回歸。
+
 ## 與舊版的差異（已移除）
 
 - ❌ 山與月（mountains）——移除，改用「回到升級後的桌面」收尾。
