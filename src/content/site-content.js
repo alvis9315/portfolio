@@ -19,7 +19,7 @@ export const site = {
     {
       id: 'about',
       range: journeyTimeline.captions.about,
-      position: { right: '4vw', top: '11vh', textAlign: 'right', maxWidth: '360px' },
+      position: { right: '4vw', top: '7vh', textAlign: 'right', maxWidth: '720px' },
       eyebrow: '01 — Workbench',
       title: '一切從這張桌子開始',
       body: '從產品介面、後端到系統架構；帶領團隊，也親手把產品交付上線。',

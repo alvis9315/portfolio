@@ -186,6 +186,11 @@ export function useScrollFlight({
     }
 
     if (stationController.canExit(direction)) {
+      // t=0 已是頁面頂端，向上沒有可離開的範圍；留在起始 Station。
+      if (direction < 0 && firstStationProgress === 0) {
+        event?.preventDefault()
+        return true
+      }
       if (nudgeAtBoundary) {
         event?.preventDefault()
         nudgeOutsideStationRange(direction)

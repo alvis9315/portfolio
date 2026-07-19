@@ -10,6 +10,11 @@ import { journeyTimeline } from './timeline.js'
 export const journeyViews = Object.freeze({
   workbench: Object.freeze({ pos: [0, 2.7, 2.6], look: [0, 2.6, -0.5] }),
   citySkyline: Object.freeze({ pos: [90, 19, -4], look: [57, 4, -32] }),
+  // 原始 city fly-through 在 t=.29 的精確 pose；拆段後仍維持附圖 2 構圖不變。
+  cityBillboard: Object.freeze({
+    pos: [66.59227029033701, 13.256981523359482, -22.829533344969896],
+    look: [63.39016257681727, 11.01399357205337, -26.832792880591757],
+  }),
   cityGlass: Object.freeze({ pos: [60.4, 6.8, -32.3], look: [60, 7.5, -34.2] }),
   cityDeparture: Object.freeze({ pos: [88, 8, -50], look: [110, 12, -64] }),
   drone: Object.freeze({ pos: [137, 22, -60], look: [122, 4, -78] }),
@@ -39,11 +44,21 @@ export const flight = composeShots([
   },
   {
     shot: flyThrough({
-      path: [V.citySkyline.pos, [78, 17, -12], [68, 14, -21], [64.8, 11.8, -26], [64, 9.6, -29.5], [62.5, 7.8, -31.6], V.cityGlass.pos],
-      look: [V.citySkyline.look, [68, 10.5, -23], [62, 11, -28], [60.5, 10.8, -29.5], [60.3, 9.2, -31.5], [60.2, 8, -33.4], V.cityGlass.look],
+      path: [V.citySkyline.pos, [82, 18, -9.5], [74, 16, -16.5], V.cityBillboard.pos],
+      // 目標保持在鏡頭前方並維持約 -20° 俯角，移除舊路徑 t≈.28 的 -32.6° 下頓。
+      look: [V.citySkyline.look, [60, 6.5, -29.5], [61.5, 9, -28.5], V.cityBillboard.look],
       tension: 0.32,
     }),
-    range: journeyTimeline.shots.cityFlyThrough,
+    range: journeyTimeline.shots.cityFlyToBillboard,
+    easing: easeInOutSine,
+  },
+  {
+    shot: flyThrough({
+      path: [V.cityBillboard.pos, [65, 11.8, -26], [64, 9.6, -29.5], [62.5, 7.8, -31.6], V.cityGlass.pos],
+      look: [V.cityBillboard.look, [61.2, 10.7, -29], [60.3, 9.2, -31.5], [60.2, 8, -33.4], V.cityGlass.look],
+      tension: 0.32,
+    }),
+    range: journeyTimeline.shots.cityBillboardToGlass,
     easing: easeInOutSine,
   },
   {

@@ -15,12 +15,14 @@ const createController = (options = {}) => {
   return { controller, values }
 }
 
+const indexOfStation = (id) => journeyStations.points.findIndex((station) => station.id === id)
+
 test('Station 進站後等待 input idle 才 armed', () => {
   const { controller, values } = createController()
   let state = controller.enter(0, 1000)
 
-  assert.equal(values.at(-1), 0.23)
-  assert.equal(state.station.id, 'city-overview')
+  assert.equal(values.at(-1), 0)
+  assert.equal(state.station.id, 'hero-start')
   assert.equal(state.armed, false)
 
   state = controller.update(1000 + journeyStations.rearmDelay - 1)
@@ -31,13 +33,14 @@ test('Station 進站後等待 input idle 才 armed', () => {
 
 test('一次 gesture 固定播放到下一站，播放中丟棄額外觸發', () => {
   const { controller, values } = createController()
-  controller.enter(0, 0)
+  const fromIndex = indexOfStation('city-overview')
+  controller.enter(fromIndex, 0)
   controller.update(journeyStations.rearmDelay)
 
   assert.equal(controller.trigger(1, 500), true)
   assert.equal(controller.trigger(1, 501), false)
 
-  const transition = journeyStations.transitions[0]
+  const transition = journeyStations.transitions[fromIndex]
   const middle = controller.update(500 + transition.duration / 2)
   assert.equal(middle.animating, true)
   assert.equal(values.at(-1), sampleStationTransition(transition, 0.5, 1))
@@ -51,9 +54,10 @@ test('一次 gesture 固定播放到下一站，播放中丟棄額外觸發', ()
 
 test('滾輪慣性輸入會延後下一站 re-arm', () => {
   const { controller } = createController()
-  const transition = journeyStations.transitions[0]
+  const fromIndex = indexOfStation('city-overview')
+  const transition = journeyStations.transitions[fromIndex]
   const arrivalAt = 500 + transition.duration
-  controller.enter(0, 0)
+  controller.enter(fromIndex, 0)
   controller.update(journeyStations.rearmDelay)
   controller.trigger(1, 500)
 
@@ -70,8 +74,9 @@ test('滾輪慣性輸入會延後下一站 re-arm', () => {
 
 test('向上 gesture 使用同一路徑反向播放並回到上一站', () => {
   const { controller, values } = createController()
-  const transition = journeyStations.transitions[2]
-  controller.enter(3, 0)
+  const fromIndex = indexOfStation('drone-cockpit')
+  const transition = journeyStations.transitions[fromIndex - 1]
+  controller.enter(fromIndex, 0)
   controller.update(journeyStations.rearmDelay)
 
   assert.equal(controller.trigger(-1, 500), true)
@@ -96,13 +101,24 @@ test('首尾 Station 只允許向區間外退出', () => {
 
 test('prefers-reduced-motion 模式在下一次 update 直接抵達', () => {
   const { controller } = createController({ reducedMotion: true })
-  controller.enter(0, 0)
+  const fromIndex = indexOfStation('city-overview')
+  controller.enter(fromIndex, 0)
   controller.update(journeyStations.rearmDelay)
   controller.trigger(1, 500)
 
   const state = controller.update(500)
   assert.equal(state.arrived, true)
   assert.equal(state.station.id, 'city-billboard')
+})
+
+test('第一幕自動轉場使用 ease-in-out，不會以最高速度突然起飛', () => {
+  const transition = journeyStations.transitions[0]
+  const quarter = sampleStationTransition(transition, 0.25, 1)
+  const threeQuarters = sampleStationTransition(transition, 0.75, 1)
+
+  assert.ok(quarter < 0.06 * 0.25)
+  assert.ok(threeQuarters > 0.06 * 0.75)
+  assert.ok(Math.abs(sampleStationTransition(transition, 0.25, -1) - threeQuarters) < 1e-9)
 })
 
 test('第三幕最終站至少停留一秒才重新 armed', () => {

@@ -12,8 +12,9 @@ const station = (id, progress, chapter, rearmDelay) => Object.freeze({
   chapter,
   ...(rearmDelay === undefined ? {} : { rearmDelay }),
 })
-const stationTransition = (duration, keyframes) => Object.freeze({
+const stationTransition = (duration, keyframes, easing = 'linear') => Object.freeze({
   duration,
+  easing,
   keyframes: Object.freeze(keyframes.map(([at, progress]) => Object.freeze({ at, progress }))),
 })
 
@@ -22,7 +23,7 @@ export const DRONE_REVEAL_RANGE = range(0.368, DRONE_ARRIVAL_RANGE[0])
 export const DRONE_FLIGHT_RANGE = range(DRONE_REVEAL_RANGE[0], DRONE_ARRIVAL_RANGE[1])
 
 /**
- * 第二、三幕的隱藏敘事中繼站。
+ * 第一到第三幕的隱藏敘事中繼站。
  *
  * station.progress 是停靠構圖；transitions[n] 負責 stations[n] ↔ stations[n + 1]。
  * keyframes 將既有 shot 之間的閱讀 hold 壓縮到合理比例，避免固定時間播放時
@@ -31,7 +32,11 @@ export const DRONE_FLIGHT_RANGE = range(DRONE_REVEAL_RANGE[0], DRONE_ARRIVAL_RAN
 export const journeyStations = Object.freeze({
   rearmDelay: 420,
   points: Object.freeze([
-    station('city-overview', 0.23, 'projects'),
+    station('hero-start', 0, 'about'),
+    station('workbench-wide', 0.06, 'about'),
+    station('workbench-detail', 0.14, 'about'),
+    // 0.23–0.24 是同一個 skyline pose；停在 shot 起點 0.24 可避免下一段先 hold 再起步。
+    station('city-overview', 0.24, 'projects'),
     station('city-billboard', 0.29, 'projects'),
     station('city-glass', 0.32, 'projects'),
     station('drone-cockpit', 0.42, 'drone-ops'),
@@ -39,8 +44,12 @@ export const journeyStations = Object.freeze({
     station('drone-overview', 0.5, 'drone-ops', 1000),
   ]),
   transitions: Object.freeze([
-    stationTransition(2400, [[0, 0.23], [0.08, 0.24], [1, 0.29]]),
-    stationTransition(2200, [[0, 0.29], [1, 0.32]]),
+    stationTransition(2600, [[0, 0], [1, 0.06]], 'easeInOutSine'),
+    stationTransition(2800, [[0, 0.06], [1, 0.14]], 'easeInOutSine'),
+    // 兩端的短 hold 用於字幕淡出與抵達 settle；實際跨城 line 約播放 4.1 秒。
+    stationTransition(5000, [[0, 0.14], [0.1, 0.17], [0.92, 0.23], [1, 0.24]]),
+    stationTransition(3200, [[0, 0.24], [1, 0.29]]),
+    stationTransition(2600, [[0, 0.29], [1, 0.32]]),
     stationTransition(3200, [[0, 0.32], [0.15, 0.37], [0.55, 0.4], [1, 0.42]]),
     stationTransition(2800, [[0, 0.42], [1, 0.5]]),
   ]),
@@ -50,7 +59,8 @@ export const journeyTimeline = Object.freeze({
   shots: Object.freeze({
     workbenchIntro: range(0, 0.14),
     workbenchToCity: range(0.17, 0.23),
-    cityFlyThrough: range(0.24, 0.32),
+    cityFlyToBillboard: range(0.24, 0.29),
+    cityBillboardToGlass: range(0.29, 0.32),
     cityDeparture: range(0.37, 0.4),
     droneArrival: DRONE_ARRIVAL_RANGE,
     droneToCommand: range(0.53, 0.56),
@@ -71,7 +81,7 @@ export const journeyTimeline = Object.freeze({
     finalDesk: scene(range(0.85, 1), range(0.86, 1)),
   }),
   captions: Object.freeze({
-    hero: range(0, 0.075),
+    hero: range(0, 0.06),
     about: range(0.08, 0.17),
     projects: range(0.32, 0.375),
     droneOps: range(0.5, 0.53),

@@ -19,8 +19,15 @@ function sampleKeyframes(keyframes, ratio) {
   return last.progress
 }
 
+const transitionEasings = Object.freeze({
+  linear: (value) => value,
+  easeInOutSine: (value) => -(Math.cos(Math.PI * value) - 1) / 2,
+})
+
 export function sampleStationTransition(transition, ratio, direction = 1) {
-  return sampleKeyframes(transition.keyframes, direction > 0 ? ratio : 1 - ratio)
+  const easing = transitionEasings[transition.easing ?? 'linear']
+  const easedRatio = easing(clamp01(ratio))
+  return sampleKeyframes(transition.keyframes, direction > 0 ? easedRatio : 1 - easedRatio)
 }
 
 function validateConfig(stations, transitions) {
@@ -44,6 +51,9 @@ function validateConfig(stations, transitions) {
     }
     if (!Array.isArray(transition.keyframes) || transition.keyframes.length < 2) {
       throw new Error(`[stations] transition ${index} needs at least two keyframes`)
+    }
+    if (!transitionEasings[transition.easing ?? 'linear']) {
+      throw new Error(`[stations] unknown easing in transition ${index}`)
     }
     transition.keyframes.forEach((keyframe, keyframeIndex) => {
       if (!Number.isFinite(keyframe.at) || !Number.isFinite(keyframe.progress)) {
