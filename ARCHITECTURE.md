@@ -161,7 +161,7 @@ easing 掛在 segment 上（每段各自指定），不要全域套一條。
 Registry 條目：
 
 ```js
-{ id: 'city', range: [0.3, 0.78], build: (ctx) => buildCity(ctx), dispose? }
+{ id: 'city', range: [0.3, 0.78], build: (ctx) => buildCity(ctx), update?, dispose? }
 ```
 
 - `t` 進入 `range ± margin`（預設 0.12）時 build 並加入 scene，
@@ -172,6 +172,9 @@ Registry 條目：
   就看得到下一個場景的輪廓，太窄會看到場景 pop 進畫面。
 - `build` 是純函數：回傳 Group、不碰 scene、不碰 camera。
   這讓每個場景可以獨立開發與測試。
+- `update(group, t, ctx, frame)` 的 `frame` 由 Stage 的單一 clock 提供
+  `{ progress, elapsed, delta }`。場景不要各自呼叫 `performance.now()`；這讓動畫能被
+  暫停、測試與未來的 visibility lifecycle 一起控制。前三個參數維持原 contract。
 
 ### 7. lights（燈光氛圍）
 

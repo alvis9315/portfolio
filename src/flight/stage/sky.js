@@ -140,7 +140,7 @@ export function createSky() {
   mesh.frustumCulled = false
 
   /** 每 frame 呼叫：t 驅動夜→曉插值，fog 顏色跟地平線色、fog 範圍隨旅程放晴。 */
-  function update(t, fog) {
+  function update(t, fog, frame) {
     // 玻璃停點先收到暖光；離場後到第三幕前半維持完整暖陽，後半才混回晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
     const morning = THREE.MathUtils.smoothstep(t, 0.38, 0.43)
@@ -162,7 +162,7 @@ export function createSky() {
     uniforms.topColor.value.lerp(FINAL_SKY, flatten)
     uniforms.horizonColor.value.lerp(FINAL_SKY, flatten)
     uniforms.bottomColor.value.lerp(FINAL_SKY, flatten)
-    uniforms.bendTime.value = performance.now() * 0.001
+    uniforms.bendTime.value = frame?.elapsed ?? 0
     uniforms.bendOpacity.value = 0.55 * (1 - THREE.MathUtils.smoothstep(t, 0.1, 0.17))
     // 接近第三幕定點時暖陽已明顯退到低空，準備轉入藍天晨色。
     uniforms.dawnWarmth.value = dawn * (1 - THREE.MathUtils.smoothstep(t, 0.36, 0.43))

@@ -73,8 +73,9 @@ export function buildCommandRoom() {
   return g
 }
 
-export function updateCommandRoom(group, t) {
+export function updateCommandRoom(group, t, _ctx, frame) {
   const [visibleFrom, visibleTo] = journeyTimeline.scenes.commandRoom.visible
   group.visible = t >= visibleFrom && t <= visibleTo
-  if (group.userData.statusLight) group.userData.statusLight.intensity = 0.82 + Math.sin(performance.now() * 0.002) * 0.12
+  const elapsed = frame?.elapsed ?? 0
+  if (group.userData.statusLight) group.userData.statusLight.intensity = 0.82 + Math.sin(elapsed * 2) * 0.12
 }

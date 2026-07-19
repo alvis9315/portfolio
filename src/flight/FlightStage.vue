@@ -37,6 +37,9 @@ const canvas = ref(null)
 let renderer, camera, scene, manager, cleanupLights, rafId, flightDebug, nightEnv, sky
 let pipeline, resizeController, projectPicker
 const lookTarget = new THREE.Vector3()
+const clock = new THREE.Clock()
+// 每 frame 重用同一個物件，避免 scene update 為時間資訊產生短命 allocation。
+const frame = { progress: 0, elapsed: 0, delta: 0 }
 const morningSkyLight = new THREE.Color(0xbad2e8)
 const morningGroundLight = new THREE.Color(0x465e73)
 const morningSunLight = new THREE.Color(0xd2e6f5)
@@ -97,8 +100,11 @@ onMounted(() => {
 
   const loop = () => {
     const t = props.progress.value
-    manager.update(t, props.context)
-    sky.update(t, scene.fog)
+    frame.progress = t
+    frame.delta = clock.getDelta()
+    frame.elapsed = clock.elapsedTime
+    manager.update(t, props.context, frame)
+    sky.update(t, scene.fog, frame)
     // 第二幕離場後完整保留一段桃金暖陽；第三幕後半才混回現有晨藍。
     const dawn = THREE.MathUtils.smoothstep(t, 0.3, 0.36)
     const morning = THREE.MathUtils.smoothstep(t, 0.38, 0.43)

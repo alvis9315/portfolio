@@ -143,10 +143,10 @@ export function buildDroneCity() {
   return g
 }
 
-export function updateDroneCity(group, t) {
+export function updateDroneCity(group, t, _ctx, frame) {
   const [visibleFrom, visibleTo] = journeyTimeline.scenes.droneCity.visible
   group.visible = t >= visibleFrom && t <= visibleTo
-  const time = performance.now() * 0.001
+  const time = frame?.elapsed ?? 0
   for (const drone of group.userData.drones || []) {
     if (drone.userData.arrival) {
       const [, end] = DRONE_ARRIVAL_RANGE

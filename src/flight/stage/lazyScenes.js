@@ -9,7 +9,7 @@ import { disposeGroup } from './materials.js'
  *     id: string,
  *     range: [a, b],          // 這個場景在飛行中「出鏡」的全域 t 區間
  *     build(ctx) => Group,     // 純函數：建好回傳 Group（不要自己 add 進 scene）
- *     update?(group, t, ctx)   // 可選；場景在場時每 frame 呼叫（螢幕漸亮、無人機動畫…）
+ *     update?(group, t, ctx, frame) // 可選；frame = { progress, elapsed, delta }
  *     dispose?(group)          // 可選；預設遍歷釋放 geometry / material
  *   }
  *
@@ -21,7 +21,7 @@ import { disposeGroup } from './materials.js'
 export function createSceneManager(scene, registry, { margin = 0.12 } = {}) {
   const live = new Map()
 
-  function update(t, ctx = {}) {
+  function update(t, ctx = {}, frame = { progress: t, elapsed: 0, delta: 0 }) {
     for (const entry of registry) {
       const [a, b] = entry.range
       const near = t >= a - margin && t <= b + margin
@@ -36,7 +36,7 @@ export function createSceneManager(scene, registry, { margin = 0.12 } = {}) {
         ;(entry.dispose || disposeGroup)(group)
         live.delete(entry.id)
       }
-      if (entry.update && live.has(entry.id)) entry.update(live.get(entry.id), t, ctx)
+      if (entry.update && live.has(entry.id)) entry.update(live.get(entry.id), t, ctx, frame)
     }
   }
 

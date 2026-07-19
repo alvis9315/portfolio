@@ -105,8 +105,9 @@ export function buildCreativeLab() {
   return g
 }
 
-export function updateCreativeLab(group, t) {
+export function updateCreativeLab(group, t, _ctx, frame) {
   const [visibleFrom, visibleTo] = journeyTimeline.scenes.creativeLab.visible
   group.visible = t >= visibleFrom && t <= visibleTo
-  if (group.userData.figure) group.userData.figure.rotation.y = Math.sin(performance.now() * 0.00045) * 0.08
+  const elapsed = frame?.elapsed ?? 0
+  if (group.userData.figure) group.userData.figure.rotation.y = Math.sin(elapsed * 0.45) * 0.08
 }
