@@ -160,7 +160,8 @@
   正式停在 shot 起點 `0.24`，避免下一段先 hold 再起步。
 - ✅ 城市全景到看板已拆成獨立 shot；附圖 1、2 端點構圖不變，lookAt 俯角由約
   `-19°` 平順變為 `-24°`，移除舊路徑在 `t≈0.28` 突降至 `-32.6°` 再拉回的下頓。
-- ✅ 最終俯瞰站抵達才直接顯示第三幕標題，並至少鎖定一秒後才允許離開 Station 區間；
+- ✅ 最終俯瞰站抵達才直接顯示第三幕標題；實機回饋後將一般 re-arm 由 `420ms` 縮短為
+  `320ms`、最終站由一秒縮短為 `720ms`，保留可讀停頓但降低完全卡住的感覺。
   第四站只切換右側 `03 · Perspective`，不顯示大標。
 - 這不是 Soft Snap，也不是由 scroll 量 scrub 動畫。Station 停住等待一個新的明確
   wheel／touch gesture；觸發後由系統以固定、較慢且穩定的時間自動播放到下一站，
@@ -190,10 +191,13 @@
   後淡出標題、顯示 `SELECT A MISSION` 並點亮所有藍光頂板；三個核心頂板可直接 Raycast，
   DOM 面板則提供清楚的 Analyze／Build／Deliver 文字與無障礙鍵盤入口。選擇後鎖定面板、
   放大至正面並切入放射狀數位通道，遮罩內自動推進 `t=.50 → .59`，最後露出現有第四幕
-  Control Center。
-- ✅ PoC 已處理手機 touch、鍵盤／Esc 返回、`prefers-reduced-motion`、右側導覽跳轉、
-  回到第三幕與 scroll position 累積；首次選擇後以 `sessionStorage` 記錄，本次分頁 session
-  不再次強迫選擇。
+  Control Center，最後以漸層遮罩淡出，避免 Portal 直接硬切到第四幕。
+- ✅ **雙向返回已完成（2026-07-21）**：在第四幕範圍向上 gesture 會先淡入相同遮罩，
+  倒放放射通道與所選任務面板，再停回 `SELECT A MISSION`；此時再向上才回第三幕最終
+  俯瞰與標題，之後沿既有 Station 反向動畫繼續倒退。這條流程同時支援 wheel、touch、
+  keyboard、右側第三幕導覽與 `prefers-reduced-motion`，不再因完成 flag 卡死。
+- ✅ `sessionStorage` 同時保留完成狀態與所選入口，讓頁面重載後仍能用一致素材倒放；
+  一旦倒放回任務選擇就清除完成狀態，若再次前進仍會經過選擇與 Portal，不會裸跳第四幕。
 - Analyze／Build／Deliver **目前只代表入口視角，三者共用現有 Control Center 出口**；
   不宣稱第四幕已有三套案例。等 Alvis 提供真實案例與第四幕資訊架構後，再把共同出口
   改為有內容差異的分流。

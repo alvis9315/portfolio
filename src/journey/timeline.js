@@ -30,7 +30,7 @@ export const DRONE_FLIGHT_RANGE = range(DRONE_REVEAL_RANGE[0], DRONE_ARRIVAL_RAN
  * 長時間不動、最後才突然趕路。反向播放會使用同一組 keyframes 倒放。
  */
 export const journeyStations = Object.freeze({
-  rearmDelay: 420,
+  rearmDelay: 320,
   points: Object.freeze([
     station('hero-start', 0, 'about'),
     station('workbench-wide', 0.06, 'about'),
@@ -40,8 +40,8 @@ export const journeyStations = Object.freeze({
     station('city-billboard', 0.29, 'projects'),
     station('city-glass', 0.32, 'projects'),
     station('drone-cockpit', 0.42, 'drone-ops'),
-    // 最終俯瞰至少停留一秒，讓第三幕標題可讀後才允許進入第四幕。
-    station('drone-overview', 0.5, 'drone-ops', 1000),
+    // 最終俯瞰保留可讀 dwell，但縮短卡控感；之後仍需新的 gesture 才會開啟任務選擇。
+    station('drone-overview', 0.5, 'drone-ops', 720),
   ]),
   transitions: Object.freeze([
     stationTransition(2200, [[0, 0], [1, 0.06]], 'easeInOutSine'),
@@ -93,5 +93,7 @@ export const journeyTimeline = Object.freeze({
     projectCard: range(0.16, 0.38),
     // 第三幕任務選擇完成後，Portal 遮罩內自動推進並落在第四幕監控牆前段。
     missionPortal: range(0.5, 0.59),
+    // 第四幕內向上 gesture 由雙向 Portal 接手，避免大幅滾動直接穿回第三幕 Station。
+    missionPortalReverse: range(0.5, 0.68),
   }),
 })

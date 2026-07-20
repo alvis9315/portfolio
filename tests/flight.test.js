@@ -84,9 +84,12 @@ test('城市全景到看板的俯角平順，且看板停點構圖不變', () =>
 
 test('任務 Portal 從第三幕最終站出發，落在第四幕監控牆鏡位', () => {
   const [portalStart, portalEnd] = journeyTimeline.ui.missionPortal
+  const [reverseStart, reverseEnd] = journeyTimeline.ui.missionPortalReverse
   const [commandStart, commandEnd] = journeyTimeline.shots.commandScreen
 
   assert.equal(portalStart, journeyStations.points.at(-1).progress)
   assert.ok(portalEnd >= commandStart && portalEnd <= commandEnd)
+  assert.equal(reverseStart, portalStart)
+  assert.ok(reverseEnd >= journeyTimeline.shots.commandDesk[1])
   assert.deepEqual(site.missions.map(({ id }) => id), ['analyze', 'build', 'deliver'])
 })

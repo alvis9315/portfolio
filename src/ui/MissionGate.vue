@@ -2,16 +2,18 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps({
-  eligible: { type: Boolean, default: false },
+  forwardEligible: { type: Boolean, default: false },
+  reverseEligible: { type: Boolean, default: false },
   phase: { type: String, default: 'idle' },
   missions: { type: Array, default: () => [] },
   selectedId: { type: String, default: '' },
 })
 
-const emit = defineEmits(['open', 'select', 'back'])
+const emit = defineEmits(['open', 'reverse', 'select', 'back'])
 const firstMission = ref(null)
 const touchStartY = ref(null)
 const touchMoved = ref(false)
+const touchGestureHandled = ref(false)
 const rays = Array.from({ length: 36 }, (_, index) => ({
   angle: `${index * 10}deg`,
   delay: `${-(index % 9) * 73}ms`,
@@ -32,50 +34,87 @@ const openFromInput = (event) => {
   emit('open')
 }
 
+const reverseFromInput = (event) => {
+  stopInput(event)
+  emit('reverse')
+}
+
+const backFromInput = (event) => {
+  stopInput(event)
+  emit('back')
+}
+
+const isTransitionPhase = () => props.phase !== 'idle' && props.phase !== 'select'
+
 const onWheel = (event) => {
-  if (props.phase !== 'idle') {
+  if (props.phase === 'select') {
+    if (event.deltaY < 0) backFromInput(event)
+    else stopInput(event)
+    return
+  }
+  if (isTransitionPhase()) {
     stopInput(event)
     return
   }
-  if (props.eligible && event.deltaY > 0) openFromInput(event)
+  if (props.forwardEligible && event.deltaY > 0) openFromInput(event)
+  if (props.reverseEligible && event.deltaY < 0) reverseFromInput(event)
 }
 
 const onTouchStart = (event) => {
   if (event.touches.length !== 1) return
   touchStartY.value = event.touches[0].clientY
   touchMoved.value = false
+  touchGestureHandled.value = false
   // select 階段允許「點一下」穿到 DOM button 或 3D canvas；只有拖曳才阻擋換站。
-  if (props.phase === 'focus' || props.phase === 'portal') stopInput(event)
+  if (isTransitionPhase()) stopInput(event)
 }
 
 const onTouchMove = (event) => {
   if (touchStartY.value === null || event.touches.length !== 1) return
   const delta = touchStartY.value - event.touches[0].clientY
   if (Math.abs(delta) > 8) touchMoved.value = true
-  if (props.phase === 'focus' || props.phase === 'portal') {
+  if (isTransitionPhase()) {
     stopInput(event)
     return
   }
   if (props.phase === 'select') {
-    if (touchMoved.value) stopInput(event)
+    if (!touchMoved.value) return
+    if (!touchGestureHandled.value && delta < 0) {
+      touchGestureHandled.value = true
+      backFromInput(event)
+    } else {
+      stopInput(event)
+    }
     return
   }
+  if (touchGestureHandled.value || Math.abs(delta) < 24) return
   const direction = Math.sign(delta)
-  if (props.eligible && direction > 0) openFromInput(event)
+  if (props.forwardEligible && direction > 0) {
+    touchGestureHandled.value = true
+    openFromInput(event)
+  }
+  if (props.reverseEligible && direction < 0) {
+    touchGestureHandled.value = true
+    reverseFromInput(event)
+  }
 }
 
 const onTouchEnd = (event) => {
   touchStartY.value = null
-  if ((props.phase === 'select' && touchMoved.value) || props.phase === 'focus' || props.phase === 'portal') {
+  if ((props.phase === 'select' && touchMoved.value) || isTransitionPhase()) {
     stopInput(event)
   }
   touchMoved.value = false
+  touchGestureHandled.value = false
 }
 
 const onKeyDown = (event) => {
-  if (props.phase === 'select' && event.key === 'Escape') {
-    stopInput(event)
-    emit('back')
+  const backward = event.key === 'ArrowUp'
+    || event.key === 'PageUp'
+    || (event.key === ' ' && event.shiftKey)
+
+  if (props.phase === 'select' && (event.key === 'Escape' || backward)) {
+    backFromInput(event)
     return
   }
 
@@ -89,7 +128,8 @@ const onKeyDown = (event) => {
   const forward = event.key === 'ArrowDown'
     || event.key === 'PageDown'
     || (event.key === ' ' && !event.shiftKey)
-  if (props.eligible && forward) openFromInput(event)
+  if (props.forwardEligible && forward) openFromInput(event)
+  if (props.reverseEligible && backward) reverseFromInput(event)
 }
 
 watch(() => props.phase, async (phase) => {
@@ -147,14 +187,14 @@ onBeforeUnmount(() => {
       <button class="mission-back" type="button" @click="emit('back')">← 返回全局視角</button>
     </div>
 
-    <div v-else-if="phase === 'focus'" class="mission-focus" aria-hidden="true">
+    <div v-else-if="phase === 'focus' || phase === 'reverse-focus'" class="mission-focus" aria-hidden="true">
       <div class="focus-panel">
         <span>{{ missions.find((mission) => mission.id === selectedId)?.code }}</span>
         <strong>{{ missions.find((mission) => mission.id === selectedId)?.label }}</strong>
       </div>
     </div>
 
-    <div v-else-if="phase === 'portal'" class="portal-tunnel" aria-hidden="true">
+    <div v-else-if="phase === 'portal' || phase === 'reverse-portal'" class="portal-tunnel" aria-hidden="true">
       <div class="portal-rays">
         <span
           v-for="(ray, index) in rays"
@@ -163,8 +203,10 @@ onBeforeUnmount(() => {
         />
       </div>
       <div class="portal-core" />
-      <p>ROUTING TO CONTROL CENTER</p>
+      <p>{{ phase === 'reverse-portal' ? 'RETURNING TO SYSTEM OVERVIEW' : 'ROUTING TO CONTROL CENTER' }}</p>
     </div>
+
+    <div v-else-if="phase === 'reveal' || phase === 'reverse-cover'" class="portal-curtain" aria-hidden="true" />
   </section>
 </template>
 
@@ -271,7 +313,8 @@ onBeforeUnmount(() => {
 .mission-back:hover,
 .mission-back:focus-visible { color: #fff; }
 .mission-focus,
-.portal-tunnel {
+.portal-tunnel,
+.portal-curtain {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -292,6 +335,9 @@ onBeforeUnmount(() => {
   transform: translate(-50%, -50%);
   animation: lock-panel 850ms cubic-bezier(0.2, 0.72, 0.18, 1) both;
 }
+.phase-reverse-focus .focus-panel {
+  animation-direction: reverse;
+}
 .focus-panel span {
   position: absolute;
   top: 20px;
@@ -309,6 +355,26 @@ onBeforeUnmount(() => {
   place-items: center;
   background: radial-gradient(circle at center, #c6fbff 0, #32b9d0 3%, #071725 15%, #020812 58%, #000 100%);
   animation: reveal 180ms ease both;
+}
+.phase-reverse-portal .portal-tunnel {
+  animation-name: reveal-reverse;
+}
+.phase-reverse-portal .portal-rays span {
+  animation-direction: reverse;
+}
+.phase-reverse-portal .portal-core {
+  animation-direction: alternate-reverse;
+}
+.portal-curtain {
+  background:
+    radial-gradient(circle at center, rgba(99, 232, 244, 0.3), rgba(4, 18, 29, 0.94) 42%, #020812 100%),
+    linear-gradient(135deg, #071725, #020812);
+}
+.phase-reveal .portal-curtain {
+  animation: curtain-out 560ms ease-in-out both;
+}
+.phase-reverse-cover .portal-curtain {
+  animation: curtain-in 440ms ease-in-out both;
 }
 .portal-rays,
 .portal-rays span {
@@ -340,6 +406,9 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reveal-reverse { from { opacity: 1; } to { opacity: 0.94; } }
+@keyframes curtain-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes curtain-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes lock-panel {
   0% { opacity: 0; transform: translate(-50%, -35%) scale(0.22) rotateX(18deg); }
   34% { opacity: 1; }
@@ -370,6 +439,7 @@ onBeforeUnmount(() => {
   .mission-select,
   .focus-panel,
   .portal-tunnel,
+  .portal-curtain,
   .portal-rays span,
   .portal-core { animation: none !important; }
 }

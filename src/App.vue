@@ -20,12 +20,19 @@ import { flight } from './journey/flight.js'
  * ProjectCard 或 Portal，並讓 Station driver 在任一互動接管期間阻擋換站。 */
 const activeProject = ref(null)
 const portalPhase = ref('idle')
-const selectedMission = ref(null)
+const MISSION_COMPLETE_KEY = 'portfolio-mission-complete'
+const MISSION_SELECTION_KEY = 'portfolio-mission-selection'
+const storedMissionId = typeof sessionStorage !== 'undefined'
+  ? sessionStorage.getItem(MISSION_SELECTION_KEY)
+  : ''
+const storedMission = site.missions.find((mission) => mission.id === storedMissionId) ?? null
 const missionCompleted = ref(
-  typeof sessionStorage !== 'undefined' && sessionStorage.getItem('portfolio-mission-complete') === '1',
+  typeof sessionStorage !== 'undefined' && sessionStorage.getItem(MISSION_COMPLETE_KEY) === '1',
 )
+// 舊 session 可能只有 complete flag；保留一個有效入口，反向 Portal 才能倒放同一塊面板。
+const selectedMission = ref(storedMission ?? (missionCompleted.value ? site.missions[0] : null))
 const portalActive = computed(() => portalPhase.value !== 'idle')
-const portalBusy = computed(() => portalPhase.value === 'focus' || portalPhase.value === 'portal')
+const portalBusy = computed(() => portalActive.value && portalPhase.value !== 'select')
 const ctl = useScrollFlight({
   damping: 0.08,
   stations: journeyStations,
@@ -39,16 +46,24 @@ const railOpen = ref(false)
 const CITY_RANGE = journeyTimeline.ui.projectCard
 const DRONE_OVERVIEW_PROGRESS = journeyStations.points.at(-1).progress
 const PORTAL_DESTINATION = journeyTimeline.ui.missionPortal[1]
+const PORTAL_REVERSE_LIMIT = journeyTimeline.ui.missionPortalReverse[1]
 const reducedMotion = typeof window !== 'undefined'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 let portalRafId = 0
 const portalTimers = new Set()
 
-const portalEligible = computed(() => (
+const portalForwardEligible = computed(() => (
   !missionCompleted.value
   && portalPhase.value === 'idle'
   && ctl.activeStation.value?.id === 'drone-overview'
   && ctl.stationArmed.value
+))
+const portalReverseEligible = computed(() => (
+  missionCompleted.value
+  && portalPhase.value === 'idle'
+  && !ctl.activeStation.value
+  && ctl.progress.value > DRONE_OVERVIEW_PROGRESS + 1e-5
+  && ctl.progress.value <= PORTAL_REVERSE_LIMIT
 ))
 
 const stageContext = {
@@ -91,7 +106,7 @@ const animateProgress = (to, duration) => new Promise((resolve) => {
 })
 
 function openMissionGate() {
-  if (portalEligible.value) portalPhase.value = 'select'
+  if (portalForwardEligible.value) portalPhase.value = 'select'
 }
 
 function resetMissionGate() {
@@ -107,10 +122,29 @@ async function selectMission(mission) {
   await wait(reducedMotion ? 0 : 850)
   portalPhase.value = 'portal'
   await animateProgress(PORTAL_DESTINATION, reducedMotion ? 0 : 1550)
-  await wait(reducedMotion ? 0 : 260)
   missionCompleted.value = true
-  sessionStorage.setItem('portfolio-mission-complete', '1')
+  sessionStorage.setItem(MISSION_COMPLETE_KEY, '1')
+  sessionStorage.setItem(MISSION_SELECTION_KEY, mission.id)
+  portalPhase.value = 'reveal'
+  await wait(reducedMotion ? 0 : 560)
   portalPhase.value = 'idle'
+}
+
+async function reverseMissionPortal() {
+  if (!portalReverseEligible.value) return
+
+  portalPhase.value = 'reverse-cover'
+  await wait(reducedMotion ? 0 : 440)
+  portalPhase.value = 'reverse-portal'
+  await animateProgress(DRONE_OVERVIEW_PROGRESS + 1e-6, reducedMotion ? 0 : 1550)
+  portalPhase.value = 'reverse-focus'
+  await wait(reducedMotion ? 0 : 850)
+
+  // Portal 倒放完才正式重進最終 Station；下一個向上 gesture 只負責關閉任務選擇。
+  ctl.jumpTo(DRONE_OVERVIEW_PROGRESS, { behavior: 'auto' })
+  missionCompleted.value = false
+  sessionStorage.removeItem(MISSION_COMPLETE_KEY)
+  portalPhase.value = 'select'
 }
 
 function handleStageSelect(selection) {
@@ -134,6 +168,11 @@ const activeSectionId = computed(() => {
 
 function jumpToSection(section) {
   if (portalBusy.value) return
+  if (section.id === 'drone-ops' && portalReverseEligible.value) {
+    railOpen.value = false
+    reverseMissionPortal()
+    return
+  }
   resetMissionGate()
   const target = section.id === 'drone-ops' && !missionCompleted.value
     ? DRONE_OVERVIEW_PROGRESS
@@ -200,11 +239,13 @@ onBeforeUnmount(() => {
   </FlightCaption>
 
   <MissionGate
-    :eligible="portalEligible"
+    :forward-eligible="portalForwardEligible"
+    :reverse-eligible="portalReverseEligible"
     :phase="portalPhase"
     :missions="site.missions"
     :selected-id="selectedMission?.id"
     @open="openMissionGate"
+    @reverse="reverseMissionPortal"
     @select="selectMission"
     @back="resetMissionGate"
   />

@@ -338,13 +338,14 @@ seam 無警告 → 最後才加 easing 調節奏。節奏太快就拉長 App.vue
 - `tests/resources.test.js`：GPU ownership、手機渲染預算與 visibility listener。
 - `tests/project-picker.test.js`：第三幕 mission 面板的 gate-aware Raycaster 選取。
 - `tests/station-controller.test.js`：中繼站進出、固定時間正反向播放、輸入鎖定、
-  inertia re-arm、最終站一秒停留與 reduced-motion。
+  inertia re-arm、最終站短 dwell 與 reduced-motion。
 
 ## 已知的擴充關卡（roadmap）
 
-1. **第三幕互動閘門**：Cinematic Stations 與 `SELECT A MISSION` → Portal → 現有第四幕
-   Control Center 的 PoC 已完成。Analyze／Build／Deliver 目前共用同一出口；第四幕資訊架構
-   定稿後才分流真實案例，不在 PoC 內捏造內容。
+1. **第三幕互動閘門**：Cinematic Stations 與 `SELECT A MISSION` ↔ Portal ↔ 現有第四幕
+   Control Center 的雙向 PoC 已完成。正向以漸層淡化露出第四幕；第四幕向上 gesture 會
+   倒放同一套 Portal，先回任務選擇，再一次向上才回第三幕標題。Analyze／Build／Deliver
+   目前共用同一出口；第四幕資訊架構定稿後才分流真實案例，不在 PoC 內捏造內容。
 2. **首屏 bundle 拆分**：目前 production JS 約 656 KB；場景 registry 若改 dynamic
    import，必須先設計 async build 與取消載入，不能在現行同步 manager 內硬塞。
 3. **GLTF 資產階段**：確認正式模型後，擴充 AssetRegistry 到 GLTF／DRACO；不要先為
