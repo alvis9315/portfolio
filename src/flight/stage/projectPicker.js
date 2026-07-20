@@ -1,18 +1,21 @@
 import * as THREE from 'three'
 
-/** 城市場景的 project raycasting 與 hover ownership。 */
+/** 城市 project 與第三幕 mission 面板的 raycasting / hover ownership。 */
 export function createProjectPicker({ canvas, camera, scene, isEnabled, onSelect }) {
   const raycaster = new THREE.Raycaster()
   const pointer = new THREE.Vector2()
   let hasPointer = false
   let hovered = null
-  let hoveredEmissive = 0
+  let hoveredState = null
 
-  const pickProjectMesh = () => {
+  const interactionFor = (object) => object.userData?.project ?? object.userData?.mission ?? null
+  const pickInteractionMesh = () => {
     raycaster.setFromCamera(pointer, camera)
     for (const hit of raycaster.intersectObjects(scene.children, true)) {
       for (let object = hit.object; object; object = object.parent) {
-        if (object.userData?.project) return object
+        if (!interactionFor(object)) continue
+        if (typeof object.userData.isSelectable === 'function' && !object.userData.isSelectable()) continue
+        return object
       }
     }
     return null
@@ -21,14 +24,21 @@ export function createProjectPicker({ canvas, camera, scene, isEnabled, onSelect
   const setHover = (mesh) => {
     if (mesh === hovered) return
     if (hovered) {
-      if (hovered.material?.emissive) hovered.material.emissive.setHex(hoveredEmissive)
+      if (hovered.material?.emissive) {
+        hovered.material.emissive.setHex(hoveredState.emissive)
+        hovered.material.emissiveIntensity = hoveredState.intensity
+      }
       else if (hovered.userData.baseScale) hovered.scale.copy(hovered.userData.baseScale)
     }
     hovered = mesh
     if (hovered) {
       if (hovered.material?.emissive) {
-        hoveredEmissive = hovered.material.emissive.getHex()
-        hovered.material.emissive.setHex(0x2f4a43)
+        hoveredState = {
+          emissive: hovered.material.emissive.getHex(),
+          intensity: hovered.material.emissiveIntensity,
+        }
+        hovered.material.emissive.setHex(hovered.userData.hoverColor ?? 0x2f4a43)
+        hovered.material.emissiveIntensity = Math.max(hovered.material.emissiveIntensity, 1.45)
       } else {
         hovered.userData.baseScale = hovered.userData.baseScale || hovered.scale.clone()
         hovered.scale.copy(hovered.userData.baseScale).multiplyScalar(1.12)
@@ -38,14 +48,15 @@ export function createProjectPicker({ canvas, camera, scene, isEnabled, onSelect
   }
 
   const onPointerMove = (event) => {
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+    const bounds = canvas.getBoundingClientRect()
+    pointer.x = ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 2 - 1
+    pointer.y = -((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 2 + 1
     hasPointer = true
   }
   const onPointerLeave = () => { hasPointer = false }
   const onClick = () => {
-    const mesh = isEnabled() ? pickProjectMesh() : null
-    onSelect(mesh ? mesh.userData.project : null)
+    const mesh = isEnabled() ? pickInteractionMesh() : null
+    onSelect(mesh ? interactionFor(mesh) : null)
   }
 
   canvas.addEventListener('pointermove', onPointerMove)
@@ -54,7 +65,7 @@ export function createProjectPicker({ canvas, camera, scene, isEnabled, onSelect
 
   return {
     update() {
-      setHover(hasPointer && isEnabled() ? pickProjectMesh() : null)
+      setHover(hasPointer && isEnabled() ? pickInteractionMesh() : null)
     },
     dispose() {
       canvas.removeEventListener('pointermove', onPointerMove)

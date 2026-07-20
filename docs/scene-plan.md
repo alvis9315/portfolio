@@ -186,11 +186,17 @@
 - 八個 pose 與初始 duration 已實作；節奏仍須由 Alvis 以實際觸控板與手機手勢做最終
   主觀驗收，驗收只調 `journeyStations.transitions[].duration`。
 - 不把其他曲線控制點或純轉場節點設為 Station。
-- 第三幕後續的 `SELECT A MISSION` 屬於獨立 **Hard Gate** 待辦：使用者再次滑動後淡出
-  標題、點亮藍光面板，選擇 Analyze／Build／Deliver，再經面板拉近與數位 Portal 進入
-  第四幕。此功能須等第四幕資訊架構確認後實作，不能先做沒有實際差異的假選擇。
-- Hard Gate 必須處理手機 touch、鍵盤、`prefers-reduced-motion`、右側導覽跳轉、返回
-  第三幕與 scroll position 累積；首次選擇後本次 session 不再次強迫選擇。
+- ✅ **Hard Gate／Portal PoC 已完成（2026-07-20 特例授權）**：第三幕最終站再次向下 gesture
+  後淡出標題、顯示 `SELECT A MISSION` 並點亮所有藍光頂板；三個核心頂板可直接 Raycast，
+  DOM 面板則提供清楚的 Analyze／Build／Deliver 文字與無障礙鍵盤入口。選擇後鎖定面板、
+  放大至正面並切入放射狀數位通道，遮罩內自動推進 `t=.50 → .59`，最後露出現有第四幕
+  Control Center。
+- ✅ PoC 已處理手機 touch、鍵盤／Esc 返回、`prefers-reduced-motion`、右側導覽跳轉、
+  回到第三幕與 scroll position 累積；首次選擇後以 `sessionStorage` 記錄，本次分頁 session
+  不再次強迫選擇。
+- Analyze／Build／Deliver **目前只代表入口視角，三者共用現有 Control Center 出口**；
+  不宣稱第四幕已有三套案例。等 Alvis 提供真實案例與第四幕資訊架構後，再把共同出口
+  改為有內容差異的分流。
 - 第四、第五幕重新設計尚未定案：第四幕承接 Analyze／Build／Deliver 的真實案例視角；
   第五幕以相同全局方法呈現攝影、Illustrator、Photoshop 與適量 AI 創作流程。
 
@@ -204,9 +210,9 @@
    touch 狀態與 ProjectCard；目前 Station driver 的卡片開啟鎖定 hook 已完成，屆時直接接線。
 4. **第四、第五幕資訊架構（等待 Alvis 資料）**：先完成 Analyze／Build／Deliver 的案例
    分流，以及攝影、Illustrator、Photoshop、AI 的全局敘事，不先改 3D 場景。
-5. **第三幕 Hard Gate 與 Portal**：資訊架構定稿後實作 `SELECT A MISSION`、面板選擇、
-   正面拉近與數位通道；必須含 touch、keyboard、reduced-motion、返回與 rail 跳轉。
-6. **重做第四、第五幕**：依選定任務呈現不同但可共用的案例視角，再以創作流程收束個人
+5. ✅ **第三幕 Hard Gate 與 Portal PoC**：互動、輸入裝置與暫時接到 Control Center 已完成；
+   待第四幕資訊架構後只替換分流內容與最終落點。
+6. **重做第四、第五幕（等待 Alvis 資料）**：依選定任務呈現不同但可共用的案例視角，再以創作流程收束個人
    能力；避免在 Portal 尚未定稿時同時改鏡頭路徑。
 7. **無人機與正式資產決策**：先確認可用模型的外型、授權、polygon／texture 預算，再決定
    是否導入 GLTF／DRACO；不為替換模型預先重寫現有 scene contract。

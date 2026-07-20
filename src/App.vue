@@ -1,9 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useScrollFlight } from './flight/useScrollFlight.js'
 import FlightStage from './flight/FlightStage.vue'
 import FlightCaption from './flight/FlightCaption.vue'
 import ProjectCard from './ui/ProjectCard.vue'
+import MissionGate from './ui/MissionGate.vue'
 import { buildWorkbench, updateWorkbench } from './scenes/workbench.js'
 import { buildCity, updateCity } from './scenes/city.js'
 import { buildDroneCity, updateDroneCity } from './scenes/droneCity.js'
@@ -15,13 +16,20 @@ import { journeyStations, journeyTimeline } from './journey/timeline.js'
 import { flight } from './journey/flight.js'
 
 /* ── 1. 驅動層 ─────────────────────────────────────────── */
-/* 點擊城市地標樓選中的作品（FlightStage @select 丟出，ProjectCard 顯示）。
- * 先建立互動狀態，讓 Station driver 能在卡片開啟期間阻擋換站。 */
+/* FlightStage 的 select 同時承載城市 project 與第三幕 mission；App 依 kind 分流到
+ * ProjectCard 或 Portal，並讓 Station driver 在任一互動接管期間阻擋換站。 */
 const activeProject = ref(null)
+const portalPhase = ref('idle')
+const selectedMission = ref(null)
+const missionCompleted = ref(
+  typeof sessionStorage !== 'undefined' && sessionStorage.getItem('portfolio-mission-complete') === '1',
+)
+const portalActive = computed(() => portalPhase.value !== 'idle')
+const portalBusy = computed(() => portalPhase.value === 'focus' || portalPhase.value === 'portal')
 const ctl = useScrollFlight({
   damping: 0.08,
   stations: journeyStations,
-  isInteractionBlocked: () => Boolean(activeProject.value),
+  isInteractionBlocked: () => Boolean(activeProject.value) || portalActive.value,
 })
 // 六幕需要足夠的實體捲動距離讓觀眾停留觀看。640vh 扣掉一個 viewport 後，
 // 每幕平均不到一個螢幕高度，觸控板的一次慣性滑動很容易直接跨幕。
@@ -29,6 +37,89 @@ const SCROLL_LENGTH_VH = 1100
 
 const railOpen = ref(false)
 const CITY_RANGE = journeyTimeline.ui.projectCard
+const DRONE_OVERVIEW_PROGRESS = journeyStations.points.at(-1).progress
+const PORTAL_DESTINATION = journeyTimeline.ui.missionPortal[1]
+const reducedMotion = typeof window !== 'undefined'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+let portalRafId = 0
+const portalTimers = new Set()
+
+const portalEligible = computed(() => (
+  !missionCompleted.value
+  && portalPhase.value === 'idle'
+  && ctl.activeStation.value?.id === 'drone-overview'
+  && ctl.stationArmed.value
+))
+
+const stageContext = {
+  content: site,
+  isMissionSelectionActive: () => portalActive.value,
+  selectedMissionId: () => selectedMission.value?.id ?? '',
+}
+
+const wait = (duration) => new Promise((resolve) => {
+  const timer = window.setTimeout(() => {
+    portalTimers.delete(timer)
+    resolve()
+  }, duration)
+  portalTimers.add(timer)
+})
+
+const animateProgress = (to, duration) => new Promise((resolve) => {
+  if (!duration) {
+    ctl.jumpTo(to, { behavior: 'auto' })
+    resolve()
+    return
+  }
+
+  const from = ctl.progress.value
+  const startedAt = performance.now()
+  const tick = (now) => {
+    const ratio = Math.min((now - startedAt) / duration, 1)
+    const eased = ratio < 0.5 ? 4 * ratio ** 3 : 1 - ((-2 * ratio + 2) ** 3) / 2
+    // .5 是最後一個 Station；第一 frame 跨出一個 epsilon 才會交回一般 progress driver。
+    const value = Math.max(DRONE_OVERVIEW_PROGRESS + 1e-6, from + (to - from) * eased)
+    ctl.jumpTo(value, { behavior: 'auto' })
+    if (ratio >= 1) {
+      portalRafId = 0
+      resolve()
+      return
+    }
+    portalRafId = requestAnimationFrame(tick)
+  }
+  portalRafId = requestAnimationFrame(tick)
+})
+
+function openMissionGate() {
+  if (portalEligible.value) portalPhase.value = 'select'
+}
+
+function resetMissionGate() {
+  if (portalPhase.value !== 'select') return
+  selectedMission.value = null
+  portalPhase.value = 'idle'
+}
+
+async function selectMission(mission) {
+  if (portalPhase.value !== 'select' || !mission) return
+  selectedMission.value = mission
+  portalPhase.value = 'focus'
+  await wait(reducedMotion ? 0 : 850)
+  portalPhase.value = 'portal'
+  await animateProgress(PORTAL_DESTINATION, reducedMotion ? 0 : 1550)
+  await wait(reducedMotion ? 0 : 260)
+  missionCompleted.value = true
+  sessionStorage.setItem('portfolio-mission-complete', '1')
+  portalPhase.value = 'idle'
+}
+
+function handleStageSelect(selection) {
+  if (selection?.kind === 'mission') {
+    selectMission(selection)
+    return
+  }
+  activeProject.value = selection
+}
 
 const navSections = computed(() => site.sections.slice(1))
 const activeSectionId = computed(() => {
@@ -42,7 +133,11 @@ const activeSectionId = computed(() => {
 })
 
 function jumpToSection(section) {
-  const target = (section.range[0] + section.range[1]) / 2
+  if (portalBusy.value) return
+  resetMissionGate()
+  const target = section.id === 'drone-ops' && !missionCompleted.value
+    ? DRONE_OVERVIEW_PROGRESS
+    : (section.range[0] + section.range[1]) / 2
   ctl.jumpTo(target)
   railOpen.value = false
 }
@@ -51,11 +146,17 @@ function jumpToSection(section) {
 const scenes = [
   { id: 'workbench', range: journeyTimeline.scenes.workbench.load, build: () => buildWorkbench(), update: updateWorkbench },
   { id: 'city', range: journeyTimeline.scenes.city.load, build: (ctx) => buildCity(ctx), update: updateCity },
-  { id: 'drone-city', range: journeyTimeline.scenes.droneCity.load, build: () => buildDroneCity(), update: updateDroneCity },
+  { id: 'drone-city', range: journeyTimeline.scenes.droneCity.load, build: (ctx) => buildDroneCity(ctx), update: updateDroneCity },
   { id: 'command-room', range: journeyTimeline.scenes.commandRoom.load, build: () => buildCommandRoom(), update: updateCommandRoom },
   { id: 'creative-lab', range: journeyTimeline.scenes.creativeLab.load, build: () => buildCreativeLab(), update: updateCreativeLab },
   { id: 'final-desk', range: journeyTimeline.scenes.finalDesk.load, build: () => buildFinalDesk(), update: updateFinalDesk },
 ]
+
+onBeforeUnmount(() => {
+  if (portalRafId) cancelAnimationFrame(portalRafId)
+  portalTimers.forEach((timer) => clearTimeout(timer))
+  portalTimers.clear()
+})
 </script>
 
 <template>
@@ -67,9 +168,9 @@ const scenes = [
     :flight="flight"
     :scenes="scenes"
     :progress="ctl.progress"
-    :context="{ content: site }"
+    :context="stageContext"
     lighting="dusk"
-    @select="activeProject = $event"
+    @select="handleStageSelect"
   />
 
   <!-- 作品卡：UI 層，疊在舞台外，吃 @select 事件 + 綁 progress 區間 -->
@@ -87,6 +188,7 @@ const scenes = [
     :progress="ctl.progress"
     :range="s.range"
     :instant-in="s.id === 'projects' || s.id === 'drone-ops'"
+    :suppressed="s.id === 'drone-ops' && portalActive"
     :style="s.position"
   >
     <div class="eyebrow">{{ s.eyebrow }}</div>
@@ -97,8 +199,18 @@ const scenes = [
     </a>
   </FlightCaption>
 
+  <MissionGate
+    :eligible="portalEligible"
+    :phase="portalPhase"
+    :missions="site.missions"
+    :selected-id="selectedMission?.id"
+    @open="openMissionGate"
+    @select="selectMission"
+    @back="resetMissionGate"
+  />
+
   <!-- 飛行進度軌：直接綁 progress 的另一個 UI 範例 -->
-  <nav class="rail" :class="{ open: railOpen }" aria-label="場景導覽">
+  <nav class="rail" :class="{ open: railOpen, locked: portalBusy }" aria-label="場景導覽">
     <button class="rail-toggle" type="button" :aria-expanded="railOpen" aria-label="展開場景導覽" @click="railOpen = !railOpen">{{ railOpen ? '×' : '≡' }}</button>
     <button v-for="(s, index) in navSections" :key="s.id" class="stop"
       :class="{ active: activeSectionId === s.id }"
@@ -149,6 +261,10 @@ p {
   height: 38vh;
   width: 1px;
   background: rgba(232, 238, 245, 0.18);
+}
+.rail.locked {
+  opacity: 0.35;
+  pointer-events: none;
 }
 .stop {
   position: absolute;

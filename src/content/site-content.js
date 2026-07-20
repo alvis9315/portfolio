@@ -51,6 +51,7 @@ export const site = {
       eyebrow: '04 — Delivery',
       title: '把複雜系統帶到穩定交付',
       body: '串起服務拓撲、部署節奏與異常回應，讓團隊看見同一個真實狀態。',
+      bodyColor: '#4b6173',
     },
     {
       id: 'ai-lab',
@@ -69,6 +70,30 @@ export const site = {
       eyebrow: '06 — What Comes Next',
       title: "I build systems, lead delivery, and explore what's next with AI.",
       body: 'Alvis Wu · Full-Stack Engineering Lead × Solution Engineer × AI Explorer',
+    },
+  ],
+
+  missions: [
+    {
+      id: 'analyze',
+      kind: 'mission',
+      code: '01 / TRACE',
+      label: 'ANALYZE',
+      description: '釐清需求、限制與真正需要解決的問題。',
+    },
+    {
+      id: 'build',
+      kind: 'mission',
+      code: '02 / SHAPE',
+      label: 'BUILD',
+      description: '把脈絡轉成可維護、能落地的系統。',
+    },
+    {
+      id: 'deliver',
+      kind: 'mission',
+      code: '03 / ALIGN',
+      label: 'DELIVER',
+      description: '對齊團隊、風險與節奏，推進穩定交付。',
     },
   ],
 

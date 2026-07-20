@@ -15,6 +15,8 @@ const props = defineProps({
   fade: { type: Number, default: 0.22 },
   /** Station 標題抵達 range 起點時直接顯示，不讓精確停點落在 opacity 0。 */
   instantIn: { type: Boolean, default: false },
+  /** 章節互動接管畫面時，平順淡出原 caption。 */
+  suppressed: { type: Boolean, default: false },
 })
 
 const opacity = computed(() => {
@@ -36,7 +38,10 @@ const opacity = computed(() => {
 <template>
   <section
     class="flight-caption"
-    :style="{ opacity, visibility: opacity > 0.01 ? 'visible' : 'hidden' }"
+    :style="{
+      opacity: suppressed ? 0 : opacity,
+      visibility: !suppressed && opacity > 0.01 ? 'visible' : 'hidden',
+    }"
   >
     <slot :opacity="opacity" />
   </section>
@@ -47,6 +52,7 @@ const opacity = computed(() => {
   position: fixed;
   max-width: min(420px, 80vw);
   pointer-events: none;
+  transition: opacity 320ms ease, visibility 320ms;
 }
 .flight-caption :deep(a),
 .flight-caption :deep(button) {

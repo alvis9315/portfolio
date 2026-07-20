@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { flight, journeyViews } from '../src/journey/flight.js'
 import { journeyStations, journeyTimeline } from '../src/journey/timeline.js'
+import { site } from '../src/content/site-content.js'
 
 const poseAt = (t) => {
   const position = new THREE.Vector3()
@@ -79,4 +80,13 @@ test('城市全景到看板的俯角平順，且看板停點構圖不變', () =>
   const billboardPose = poseAt(0.29)
   assert.ok(billboardPose.position.distanceTo(new THREE.Vector3(...journeyViews.cityBillboard.pos)) < 1e-9)
   assert.ok(billboardPose.look.distanceTo(new THREE.Vector3(...journeyViews.cityBillboard.look)) < 1e-9)
+})
+
+test('任務 Portal 從第三幕最終站出發，落在第四幕監控牆鏡位', () => {
+  const [portalStart, portalEnd] = journeyTimeline.ui.missionPortal
+  const [commandStart, commandEnd] = journeyTimeline.shots.commandScreen
+
+  assert.equal(portalStart, journeyStations.points.at(-1).progress)
+  assert.ok(portalEnd >= commandStart && portalEnd <= commandEnd)
+  assert.deepEqual(site.missions.map(({ id }) => id), ['analyze', 'build', 'deliver'])
 })

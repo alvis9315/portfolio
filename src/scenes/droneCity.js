@@ -13,7 +13,7 @@ const smoothstep = (edge0, edge1, value) => {
 }
 
 /** 第三幕：以無人機高空視角隱喻全端視野；它是視覺主題，不宣稱真實無人機專案。 */
-export function buildDroneCity() {
+export function buildDroneCity(ctx = {}) {
   const g = new THREE.Group()
   const B = island(g, 34, 28, 122, -1.5, -78)
   const rnd = seededRandom(43)
@@ -35,7 +35,9 @@ export function buildDroneCity() {
   const nodeMat = standard(0x40586e, { roughness: 0.5, metalness: 0.28 })
   const serviceMat = standard(0x344b61, { roughness: 0.42, metalness: 0.36 })
   const coreMat = standard(0x58758e, { emissive: 0x142b3e, emissiveIntensity: 0.12, roughness: 0.34, metalness: 0.42 })
-  const nodeCap = emissive(0x4d8ba6, 0.18)
+  const signalCaps = []
+  const missionPanels = []
+  const missions = ctx.content?.missions ?? []
 
   // 多數是低矮服務／資料節點，刻意打破第二幕密集高樓的輪廓。
   for (let i = 0; i < 34; i++) {
@@ -48,7 +50,9 @@ export function buildDroneCity() {
     const d = service ? 2.0 + rnd() * 1.5 : 1.7 + rnd() * 2.3
     const h = service ? 2.2 + rnd() * 1.8 : 0.45 + rnd() * 1.05
     box(B, w, h, d, service ? serviceMat : nodeMat, x, h / 2, z)
-    box(B, w * 0.56, 0.055, d * 0.56, nodeCap, x, h + 0.035, z)
+    const cap = box(B, w * 0.56, 0.055, d * 0.56, emissive(0x4d8ba6, 0.18), x, h + 0.035, z)
+    cap.userData.baseEmissiveIntensity = 0.18
+    signalCaps.push(cap)
   }
 
   // 少數核心高塔負責尺度與層級；亮頂代表關鍵服務，而非隨機窗戶。
@@ -59,10 +63,18 @@ export function buildDroneCity() {
     [10.2, -6.2, 5.8, 2.7, 2.6],
     [8.4, 9.2, 4.9, 2.5, 2.5],
   ]
-  cores.forEach(([x, z, h, w, d]) => {
+  cores.forEach(([x, z, h, w, d], index) => {
     box(B, w + 0.7, 0.14, d + 0.7, serviceMat, x, 0.16, z)
     box(B, w, h, d, coreMat, x, h / 2 + 0.2, z)
-    box(B, w * 0.58, 0.08, d * 0.58, emissive(0x72b5ce, 0.3), x, h + 0.25, z)
+    const cap = box(B, w * 0.64, 0.12, d * 0.64, emissive(0x72b5ce, 0.3), x, h + 0.27, z)
+    cap.userData.baseEmissiveIntensity = 0.3
+    signalCaps.push(cap)
+    if (missions[index]) {
+      cap.userData.mission = missions[index]
+      cap.userData.isSelectable = () => Boolean(ctx.isMissionSelectionActive?.())
+      cap.userData.hoverColor = 0xb7fbff
+      missionPanels.push(cap)
+    }
   })
 
   const routeMat = emissive(0x20c8d8, 0.48, { transparent: true, opacity: 0.72 })
@@ -140,13 +152,25 @@ export function buildDroneCity() {
   B.add(hud)
 
   g.userData.drones = drones
+  g.userData.signalCaps = signalCaps
+  g.userData.missionPanels = missionPanels
   return g
 }
 
-export function updateDroneCity(group, t, _ctx, frame) {
+export function updateDroneCity(group, t, ctx, frame) {
   const [visibleFrom, visibleTo] = journeyTimeline.scenes.droneCity.visible
   group.visible = t >= visibleFrom && t <= visibleTo
   const time = frame?.elapsed ?? 0
+  const missionActive = Boolean(ctx?.isMissionSelectionActive?.())
+  const selectedMissionId = ctx?.selectedMissionId?.() ?? ''
+  const pulse = 0.5 + Math.sin(time * 4.2) * 0.5
+  for (const cap of group.userData.signalCaps || []) {
+    const base = cap.userData.baseEmissiveIntensity ?? 0.18
+    cap.material.emissiveIntensity = missionActive ? base + 0.5 + pulse * 0.55 : base
+  }
+  for (const panel of group.userData.missionPanels || []) {
+    if (panel.userData.mission?.id === selectedMissionId) panel.material.emissiveIntensity = 2.1
+  }
   for (const drone of group.userData.drones || []) {
     if (drone.userData.arrival) {
       const [, end] = DRONE_ARRIVAL_RANGE

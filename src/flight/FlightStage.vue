@@ -33,7 +33,7 @@ const props = defineProps({
   fov: { type: Number, default: 55 },
 })
 
-/** 點到地標樓時把 project 資料丟出去；點空白處丟 null（取消選取）。UI 卡片疊在舞台外接這個事件。 */
+/** 點到城市 project 或第三幕 mission 面板時，把內容資料交給舞台外的 UI。 */
 const emit = defineEmits(['select'])
 
 const canvas = ref(null)
@@ -102,8 +102,8 @@ onMounted(() => {
     canvas: canvas.value,
     camera,
     scene,
-    isEnabled: () => manager.live.has('city'),
-    onSelect: (project) => emit('select', project),
+    isEnabled: () => manager.live.has('city') || manager.live.has('drone-city'),
+    onSelect: (selection) => emit('select', selection),
   })
 
   const loop = () => {

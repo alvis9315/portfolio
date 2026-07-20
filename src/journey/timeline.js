@@ -91,5 +91,7 @@ export const journeyTimeline = Object.freeze({
   }),
   ui: Object.freeze({
     projectCard: range(0.16, 0.38),
+    // 第三幕任務選擇完成後，Portal 遮罩內自動推進並落在第四幕監控牆前段。
+    missionPortal: range(0.5, 0.59),
   }),
 })
