@@ -15,9 +15,15 @@ const touchStartY = ref(null)
 const touchMoved = ref(false)
 const touchGestureHandled = ref(false)
 const rays = Array.from({ length: 36 }, (_, index) => ({
-  angle: `${index * 10}deg`,
-  delay: `${-(index % 9) * 73}ms`,
-  width: `${28 + (index % 6) * 7}vw`,
+  // Golden-angle 分布避免等距放射線看起來像靜態輪輻；所有差異皆為 deterministic。
+  angle: `${(index * 137.508) % 360}deg`,
+  delay: `${-((index * 83) % 720)}ms`,
+  duration: `${640 + ((index * 37) % 360)}ms`,
+  length: `${18 + ((index * 17) % 34)}vmin`,
+  start: `${7 + ((index * 5) % 11)}vmin`,
+  travel: `${40 + ((index * 7) % 25)}vmin`,
+  alpha: `${0.28 + (index % 5) * 0.09}`,
+  thickness: `${index % 6 === 0 ? 1.5 : 1}px`,
 }))
 
 const setFirstMission = (element, index) => {
@@ -199,7 +205,16 @@ onBeforeUnmount(() => {
         <span
           v-for="(ray, index) in rays"
           :key="index"
-          :style="{ '--ray-angle': ray.angle, '--ray-delay': ray.delay, '--ray-width': ray.width }"
+          :style="{
+            '--ray-angle': ray.angle,
+            '--ray-delay': ray.delay,
+            '--ray-duration': ray.duration,
+            '--ray-length': ray.length,
+            '--ray-start': ray.start,
+            '--ray-travel': ray.travel,
+            '--ray-alpha': ray.alpha,
+            '--ray-thickness': ray.thickness,
+          }"
         />
       </div>
       <div class="portal-core" />
@@ -214,7 +229,7 @@ onBeforeUnmount(() => {
 .mission-gate {
   position: fixed;
   inset: 0;
-  z-index: 18;
+  z-index: 30;
   pointer-events: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -338,6 +353,9 @@ onBeforeUnmount(() => {
 .phase-reverse-focus .focus-panel {
   animation-direction: reverse;
 }
+.phase-reverse-focus .mission-focus {
+  background: #020812;
+}
 .focus-panel span {
   position: absolute;
   top: 20px;
@@ -353,11 +371,14 @@ onBeforeUnmount(() => {
 .portal-tunnel {
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at center, #c6fbff 0, #32b9d0 3%, #071725 15%, #020812 58%, #000 100%);
+  isolation: isolate;
+  background:
+    radial-gradient(circle at center, #071b29 0, #030c15 15%, #01060c 44%, #000 100%);
   animation: reveal 180ms ease both;
 }
 .phase-reverse-portal .portal-tunnel {
-  animation-name: reveal-reverse;
+  /* 反向通道必須從第一 frame 起完全不透明，否則會把移動中的第三幕透出來。 */
+  animation: none;
 }
 .phase-reverse-portal .portal-rays span {
   animation-direction: reverse;
@@ -383,21 +404,33 @@ onBeforeUnmount(() => {
   top: 50%;
 }
 .portal-rays span {
-  width: var(--ray-width);
-  height: 2px;
+  width: var(--ray-length);
+  height: var(--ray-thickness);
   transform-origin: 0 50%;
-  background: linear-gradient(90deg, transparent, rgba(128, 248, 255, 0.9));
-  box-shadow: 0 0 8px rgba(81, 229, 244, 0.8);
-  animation: ray-rush 620ms linear var(--ray-delay) infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(94, 216, 229, 0.08) 38%,
+    rgb(128 241 249 / var(--ray-alpha)) 84%,
+    transparent 100%
+  );
+  box-shadow: 0 0 3px rgba(81, 211, 224, 0.24);
+  animation: ray-rush var(--ray-duration) linear var(--ray-delay) infinite;
 }
 .portal-core {
-  width: 7vmin;
+  width: 13vmin;
   aspect-ratio: 1;
-  border: 1px solid #d8feff;
   border-radius: 50%;
-  background: #d8feff;
-  box-shadow: 0 0 28px #b6fbff, 0 0 90px #46d8df;
-  animation: core-pulse 520ms ease-in-out infinite alternate;
+  background: radial-gradient(
+    circle,
+    rgba(202, 252, 255, 0.92) 0 1.5%,
+    rgba(100, 226, 237, 0.56) 2% 5%,
+    rgba(42, 154, 174, 0.18) 7% 18%,
+    rgba(6, 19, 30, 0.88) 21% 35%,
+    rgba(4, 15, 24, 0.14) 52%,
+    transparent 72%
+  );
+  animation: core-breathe 840ms ease-in-out infinite alternate;
 }
 .portal-tunnel p {
   position: absolute;
@@ -406,7 +439,6 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
-@keyframes reveal-reverse { from { opacity: 1; } to { opacity: 0.94; } }
 @keyframes curtain-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes curtain-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes lock-panel {
@@ -416,11 +448,21 @@ onBeforeUnmount(() => {
   100% { transform: translate(-50%, -50%) scale(5.4); opacity: 0.88; }
 }
 @keyframes ray-rush {
-  from { opacity: 0; transform: rotate(var(--ray-angle)) translateX(2vmin) scaleX(0.06); }
-  18% { opacity: 0.9; }
-  to { opacity: 0; transform: rotate(var(--ray-angle)) translateX(42vmin) scaleX(1); }
+  from {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateX(var(--ray-start)) scaleX(0.08);
+  }
+  24% { opacity: 0.46; }
+  68% { opacity: 0.88; }
+  to {
+    opacity: 0;
+    transform: rotate(var(--ray-angle)) translateX(var(--ray-travel)) scaleX(1.08);
+  }
 }
-@keyframes core-pulse { to { transform: scale(1.25); } }
+@keyframes core-breathe {
+  from { opacity: 0.62; transform: scale(0.94); }
+  to { opacity: 0.86; transform: scale(1.04); }
+}
 @media (max-width: 640px) {
   .mission-select { padding: 8vh 24px calc(30px + env(safe-area-inset-bottom)); }
   .mission-select h2 { font-size: clamp(25px, 9vw, 38px); }
@@ -434,6 +476,7 @@ onBeforeUnmount(() => {
   .mission-option strong { margin-top: 5px; font-size: 16px; }
   .mission-option span:last-child { margin-top: 4px; }
   .mission-back { margin-top: 14px; }
+  .portal-rays span:nth-child(n + 25) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .mission-select,
